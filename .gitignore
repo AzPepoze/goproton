@@ -1,0 +1,34 @@
+# Binaries
+goproton
+goproton-instance
+goproton-ui
+
+# Go
+vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Wails / Build
+ui/build/bin/
+ui/frontend/dist/
+ui/frontend/node_modules/
+ui/frontend/.svelte-kit/
+ui/frontend/.vercel/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
