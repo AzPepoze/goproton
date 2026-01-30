@@ -1,7 +1,7 @@
 # Binaries
-goproton
-goproton-instance
-goproton-ui
+/goproton
+/goproton-instance
+/goproton-ui
 
 # Go
 vendor/

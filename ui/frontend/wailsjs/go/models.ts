@@ -1,3 +1,22 @@
+export namespace frontend {
+	
+	export class FileFilter {
+	    DisplayName: string;
+	    Pattern: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new FileFilter(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.DisplayName = source["DisplayName"];
+	        this.Pattern = source["Pattern"];
+	    }
+	}
+
+}
+
 export namespace launcher {
 	
 	export class LaunchOptions {
@@ -11,6 +30,10 @@ export namespace launcher {
 	    GamescopeR: string;
 	    EnableMangoHud: boolean;
 	    EnableGamemode: boolean;
+	    EnableLsfgVk: boolean;
+	    LsfgMultiplier: string;
+	    LsfgPerfMode: boolean;
+	    LsfgDllPath: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new LaunchOptions(source);
@@ -28,6 +51,10 @@ export namespace launcher {
 	        this.GamescopeR = source["GamescopeR"];
 	        this.EnableMangoHud = source["EnableMangoHud"];
 	        this.EnableGamemode = source["EnableGamemode"];
+	        this.EnableLsfgVk = source["EnableLsfgVk"];
+	        this.LsfgMultiplier = source["LsfgMultiplier"];
+	        this.LsfgPerfMode = source["LsfgPerfMode"];
+	        this.LsfgDllPath = source["LsfgDllPath"];
 	    }
 	}
 	export class ProtonTool {
@@ -46,6 +73,36 @@ export namespace launcher {
 	        this.Path = source["Path"];
 	        this.IsSteam = source["IsSteam"];
 	        this.DisplayName = source["DisplayName"];
+	    }
+	}
+	export class SystemToolsStatus {
+	    hasGamescope: boolean;
+	    hasMangoHud: boolean;
+	    hasGameMode: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new SystemToolsStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.hasGamescope = source["hasGamescope"];
+	        this.hasMangoHud = source["hasMangoHud"];
+	        this.hasGameMode = source["hasGameMode"];
+	    }
+	}
+	export class UtilsStatus {
+	    isLsfgInstalled: boolean;
+	    lsfgVersion: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new UtilsStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.isLsfgInstalled = source["isLsfgInstalled"];
+	        this.lsfgVersion = source["lsfgVersion"];
 	    }
 	}
 

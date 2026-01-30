@@ -16,11 +16,8 @@ build-ui:
 build-wrapper:
 	go build -o $(BINARY_NAME) cmd/goproton/main.go
 
-run:
+run: build
 	cd $(PROJECT_DIR) && $(WAILS_BIN) dev
-
-run-built:
-	./$(BINARY_NAME)
 
 clean:
 	rm -f $(BINARY_NAME) $(INSTANCE_BIN) $(UI_BIN)

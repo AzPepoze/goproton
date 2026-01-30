@@ -16,6 +16,7 @@
     { id: "run", label: "Run", icon: runIcon },
     { id: "versions", label: "Versions", icon: versionsIcon },
     { id: "prefix", label: "Prefix", icon: prefixIcon },
+    { id: "utils", label: "Utils", icon: runIcon },
   ];
 
   function setActive(id: string) {

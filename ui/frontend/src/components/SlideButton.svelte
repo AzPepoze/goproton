@@ -1,21 +1,43 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
+
   export let checked = false;
   export let label = "";
   export let subtitle = "";
+  export let hasConfig = false;
+
+  const dispatch = createEventDispatcher();
+
+  function toggle() {
+    checked = !checked;
+    dispatch('change', checked);
+  }
+
+  function openConfig(e: MouseEvent) {
+    e.stopPropagation();
+    dispatch('config');
+  }
 </script>
 
-<label class="slide-button-card" class:active={checked}>
+<div class="slide-button-card" class:active={checked} on:click={toggle}>
   <div class="info">
     <div class="title">{label}</div>
     {#if subtitle}
       <div class="subtitle">{subtitle}</div>
     {/if}
   </div>
-  <div class="switch-container">
-    <input type="checkbox" bind:checked />
-    <span class="slider"></span>
+  <div class="actions">
+    {#if hasConfig}
+      <button class="config-btn" on:click={openConfig} title="Configure">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+    {/if}
+    <div class="switch-container">
+      <input type="checkbox" checked={checked} on:change|stopPropagation={toggle} />
+      <span class="slider"></span>
+    </div>
   </div>
-</label>
+</div>
 
 <style lang="scss">
   .slide-button-card {
@@ -34,11 +56,40 @@
     &:hover {
       background: rgba(255, 255, 255, 0.05);
       border-color: var(--glass-border-bright);
+
+      .config-btn {
+        opacity: 1;
+      }
     }
 
     &.active {
       border-color: var(--accent-secondary);
       background: rgba(255, 255, 255, 0.04);
+    }
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .config-btn {
+    background: none;
+    border: none;
+    color: white;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: all 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      opacity: 1;
     }
   }
 

@@ -13,15 +13,15 @@ import (
 	"syscall"
 	"time"
 
-	"go-proton/internal/launcher"
+	"go-proton/pkg/launcher"
 
 	"github.com/getlantern/systray"
 )
 
 var (
 	gamePath, prefixPath, protonPath, protonPattern string
-	mango, gamemode, gamescope                      bool
-	gsW, gsH, gsR                                   string
+	mango, gamemode, gamescope, lsfg, lsfgPerf     bool
+	gsW, gsH, gsR, lsfgMult, lsfgDllPath            string
 	showLogs                                        bool
 	logFileHandle                                   *os.File
 )
@@ -53,6 +53,10 @@ func cleanupLogs(dir string, keep int) {
 	for i := 0; i < toDelete; i++ { os.Remove(filepath.Join(dir, files[i].Name())) }
 }
 
+func sendNotification(title, message string) {
+	_ = exec.Command("notify-send", "-a", "GoProton", title, message).Run()
+}
+
 func main() {
 	flag.StringVar(&gamePath, "game", "", "Path to the game executable")
 	flag.StringVar(&prefixPath, "prefix", "", "Path to the WINEPREFIX")
@@ -61,6 +65,10 @@ func main() {
 	flag.BoolVar(&mango, "mango", false, "Enable MangoHud")
 	flag.BoolVar(&gamemode, "gamemode", false, "Enable GameMode")
 	flag.BoolVar(&gamescope, "gamescope", false, "Enable Gamescope")
+	flag.BoolVar(&lsfg, "lsfg", false, "Enable LSFG-VK")
+	flag.StringVar(&lsfgMult, "lsfg-mult", "2", "LSFG Multiplier")
+	flag.BoolVar(&lsfgPerf, "lsfg-perf", false, "Enable LSFG Performance Mode")
+	flag.StringVar(&lsfgDllPath, "lsfg-dll-path", "", "Path to Lossless.dll")
 	flag.StringVar(&gsW, "gs-w", "1920", "Width")
 	flag.StringVar(&gsH, "gs-h", "1080", "Height")
 	flag.StringVar(&gsR, "gs-r", "60", "Refresh Rate")
@@ -76,7 +84,6 @@ func main() {
 		log.SetOutput(logFileHandle)
 	}
 
-	log.Printf("Starting instance for: %s\n", gamePath)
 	systray.Run(func() { onReady(logPath) }, onExit)
 }
 
@@ -99,6 +106,8 @@ func onReady(logPath string) {
 	systray.SetTitle("GoProton: " + exeName)
 	systray.SetTooltip("Running: " + exeName)
 
+	sendNotification("GoProton", "Launching "+exeName+"...")
+
 	mStatus := systray.AddMenuItem("Running: "+exeName, "")
 	mStatus.Disable()
 	systray.AddSeparator()
@@ -108,57 +117,87 @@ func onReady(logPath string) {
 		GamePath: gamePath, PrefixPath: prefixPath, ProtonPattern: protonPattern, ProtonPath: protonPath,
 		EnableMangoHud: mango, EnableGamemode: gamemode, EnableGamescope: gamescope,
 		GamescopeW: gsW, GamescopeH: gsH, GamescopeR: gsR,
+		EnableLsfgVk: lsfg, LsfgMultiplier: lsfgMult, LsfgPerfMode: lsfgPerf, LsfgDllPath: lsfgDllPath,
 	}
 	cmdArgs, env := launcher.BuildCommand(opts)
 
-	// 1. Start the actual Game Process (Directly managed by Go)
+	log.Printf("--- EXECUTION START ---")
+	log.Printf("COMMAND: %s", strings.Join(cmdArgs, " "))
+	log.Printf("ENABLED FEATURES:")
+	if mango { log.Printf("  [+] MangoHud") }
+	if gamemode { log.Printf("  [+] GameMode") }
+	if gamescope { log.Printf("  [+] Gamescope (%sx%s@%s)", gsW, gsH, gsR) }
+	if lsfg { log.Printf("  [+] LSFG-VK (x%s, PerfMode:%v)", lsfgMult, lsfgPerf) }
+
+	log.Printf("CUSTOM ENVIRONMENT VARIABLES:")
+	sysEnv := os.Environ()
+	for _, e := range env {
+		isSystem := false
+		for _, s := range sysEnv {
+			if e == s {
+				isSystem = true
+				break
+			}
+		}
+		if !isSystem {
+			log.Printf("  %s", e)
+		}
+	}
+	log.Printf("-----------------------")
+
+	// Force sync to disk so the terminal tail sees these headers immediately
+	if logFileHandle != nil {
+		_ = logFileHandle.Sync()
+	}
+
 	gameCmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	gameCmd.Env = env
 	gameCmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	
-	// Pipe game output to our log file
 	gameCmd.Stdout = logFileHandle
 	gameCmd.Stderr = logFileHandle
 
 	if err := gameCmd.Start(); err != nil {
-		log.Printf("Failed to start game: %v\n", err)
+		log.Printf("!!! ERROR: Failed to start game: %v\n", err)
+		sendNotification("Launch Error", "Failed to start "+exeName+": "+err.Error())
 		systray.Quit()
 		return
 	}
 
-	// 2. If showLogs is requested, open a terminal that just follows the log file
 	var termCmd *exec.Cmd
 	if showLogs {
 		term := findTerminal()
 		if term != "" {
-			// terminal -e tail -f logPath
-			// We add a small delay to ensure log file exists and has content
-			tailCmd := fmt.Sprintf("sleep 0.5; tail -f %s", logPath)
-			termCmd = exec.Command(term, "-e", "bash", "-c", tailCmd)
+			// Use cat/tail and filter out annoying spam logs
+			filterExpr := "setpriority|vk_xwayland_wait_ready|vk_wsi_force_swapchain"
+			tailCmd := fmt.Sprintf("sleep 0.2; cat %s | grep -E -v '%s'; tail --pid %d -f %s | grep -E -v '%s'; echo; echo '---------------------------------------'; echo 'Process finished. Press Enter to close...'; read", logPath, filterExpr, gameCmd.Process.Pid, logPath, filterExpr)
+			var cmd *exec.Cmd
+			if strings.Contains(term, "kitty") || strings.Contains(term, "alacritty") {
+				cmd = exec.Command(term, "--", "bash", "-c", tailCmd)
+			} else {
+				cmd = exec.Command(term, "-e", "bash", "-c", tailCmd)
+			}
+			termCmd = cmd
 			termCmd.Start()
 		}
 	}
 
-	// Handle Graceful Stop from Tray
 	go func() {
 		<-mKill.ClickedCh
-		log.Println("Graceful stop requested from tray")
 		if gameCmd.Process != nil {
 			launcher.StopProcessGroup(gameCmd.Process)
 		}
 	}()
 
-	// Wait for Game Process Exit
 	go func() {
 		err := gameCmd.Wait()
 		log.Printf("Game process exited with: %v\n", err)
-		
-		// Cleanup terminal if it was opened
-		if termCmd != nil && termCmd.Process != nil {
-			_ = termCmd.Process.Kill()
+
+		if err != nil {
+			sendNotification("Process Exited", fmt.Sprintf("%s exited with error: %v", exeName, err))
 		}
-		
-systray.Quit()
+
+		time.Sleep(1 * time.Second)
+		systray.Quit()
 	}()
 }
 

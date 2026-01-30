@@ -4,6 +4,8 @@
   import Run from './pages/Run.svelte';
   import Versions from './pages/Versions.svelte';
   import Prefix from './pages/Prefix.svelte';
+  import Utils from './pages/Utils.svelte';
+  import NotificationHost from './components/NotificationHost.svelte';
 
   let activePage = "home";
 
@@ -24,12 +26,16 @@
       <Versions />
     {:else if activePage === 'prefix'}
       <Prefix />
+    {:else if activePage === 'utils'}
+      <Utils />
     {:else}
       <div class="placeholder">
         Page "{activePage}" not implemented yet.
       </div>
     {/if}
   </div>
+
+  <NotificationHost />
 </main>
 
 <style lang="scss">

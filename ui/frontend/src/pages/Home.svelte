@@ -1,4 +1,15 @@
 <script lang="ts">
+  import { CleanupProcesses } from '../../wailsjs/go/main/App';
+  import { notifications } from '../notificationStore';
+
+  async function handleCleanup() {
+    try {
+      await CleanupProcesses();
+      notifications.add("System cleaned successfully! All stuck processes terminated.", "success");
+    } catch (err) {
+      notifications.add(`Cleanup failed: ${err}`, "error");
+    }
+  }
 </script>
 
 <div class="home-container">
@@ -28,6 +39,15 @@
       </div>
       <p>Current: <span class="badge">Default</span></p>
       <p class="mt-2 text-xs">Manage Wine configuration and prefixes.</p>
+    </div>
+
+    <div class="card hoverable cleanup-card" on:click={handleCleanup}>
+      <div class="card-header">
+        <span class="card-icon text-warning">🧹</span>
+        <h3>Cleanup System</h3>
+      </div>
+      <p>Terminate stuck processes like <code>umu-run</code> or <code>pressure-vessel</code> if the game won't start.</p>
+      <div class="mt-4 text-xs font-bold text-warning uppercase letter-spacing-1">Click to Clean</div>
     </div>
   </div>
 </div>
@@ -138,7 +158,18 @@
         transform: translateY(-4px);
       }
     }
+
+    &.cleanup-card:hover {
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.05);
+    }
   }
+
+  .text-warning { color: #f59e0b; }
+  .font-bold { font-weight: 700; }
+  .uppercase { text-transform: uppercase; }
+  .letter-spacing-1 { letter-spacing: 1px; }
+  .mt-4 { margin-top: 16px; }
 
   .badge {
     background-color: rgba(255, 255, 255, 0.1);

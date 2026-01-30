@@ -24,18 +24,34 @@ func GetProtonTools() ([]ProtonTool, error) {
 		return nil, fmt.Errorf("failed to get current user: %w", err)
 	}
 
-	userSteamPath := filepath.Join(u.HomeDir, ".steam/root/compatibilitytools.d")
-	systemSteamPath := "/usr/share/steam/compatibilitytools.d"
+	searchPaths := []struct {
+		path    string
+		isSteam bool
+	}{
+		{filepath.Join(u.HomeDir, ".steam/root/compatibilitytools.d"), true},
+		{filepath.Join(u.HomeDir, ".local/share/Steam/compatibilitytools.d"), true},
+		{"/usr/share/steam/compatibilitytools.d", false},
+	}
 
 	var tools []ProtonTool
+	seenPaths := make(map[string]bool)
 
-	// Scan User Steam directory
-	userTools, _ := scanDir(userSteamPath, true)
-	tools = append(tools, userTools...)
+	for _, sp := range searchPaths {
+		absPath := ExpandPath(sp.path)
+		// Resolve symlinks to get the real physical path
+		realPath, err := filepath.EvalSymlinks(absPath)
+		if err != nil {
+			realPath = absPath // Fallback to original if eval fails
+		}
 
-	// Scan System directory
-	systemTools, _ := scanDir(systemSteamPath, false)
-	tools = append(tools, systemTools...)
+		if seenPaths[realPath] {
+			continue
+		}
+		seenPaths[realPath] = true
+
+		pTools, _ := scanDir(realPath, sp.isSteam)
+		tools = append(tools, pTools...)
+	}
 
 	// Sorting: (Steam) items first, then alphabetical
 	sort.Slice(tools, func(i, j int) bool {
@@ -84,10 +100,13 @@ func scanDir(path string, isSteam bool) ([]ProtonTool, error) {
 
 // ExpandPath expands ~ to the user's home directory
 func ExpandPath(path string) string {
-	if strings.HasPrefix(path, "~/") {
+	if path == "~" || strings.HasPrefix(path, "~/") {
 		u, err := user.Current()
 		if err != nil {
 			return path
+		}
+		if path == "~" {
+			return u.HomeDir
 		}
 		return filepath.Join(u.HomeDir, path[2:])
 	}
