@@ -21,8 +21,10 @@
   </a>
 </p>
 
+GoProton is a dedicated launcher designed to run non-Steam games on Linux using **umu** (Unified Linux Runtime). It provides a seamless way to manage and execute Windows applications through Proton without needing the Steam client to be active for each session.
+
 > [!WARNING]
-> 
+>
 > This project is still in **early development**. You may encounter bugs or breaking changes. Feel free to report issues or contribute!
 
 > [!NOTE]
@@ -46,7 +48,7 @@
 - **Process Isolation** – Every game gets its own System Tray icon for individual management (Graceful Stop/Status).
 - **Native Terminal Integration** – Real-time logs are piped to your preferred terminal (Kitty, Alacritty, etc.) for live debugging.
 - **Automatic Log Management** – Persistent logging to `~/GoProton/logs` with automatic rotation (keeps last 10 sessions)
-- **umu-run Core** – Full compatibility with the Unified Linux Runtime (umu) for superior non-Steam game execution.
+- **umu-run Core** – Utilizes the Unified Linux Runtime (umu) to provide superior execution for non-Steam games.
 
 ## ARCHITECTURE & EFFICIENCY
 
@@ -60,7 +62,7 @@
 - **ProtonPlus** (Recommended for managing and adding Proton versions)
 
 > [!TIP]
-> 
+>
 > Use **ProtonPlus** or **Steam** to download and install different Proton versions. GoProton will automatically detect them in your Steam compatibility tools directory.
 
 ## BUILD

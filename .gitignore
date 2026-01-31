@@ -1,7 +1,5 @@
 # Binaries
-/goproton
-/goproton-instance
-/goproton-ui
+/bin
 
 # Go
 vendor/
@@ -9,7 +7,7 @@ vendor/
 *.exe~
 *.dll
 *.so
-*.dylib
+*.dylib1
 *.test
 *.out
 
