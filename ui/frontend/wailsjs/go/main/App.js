@@ -18,6 +18,14 @@ export function GetConfig(arg1) {
   return window['go']['main']['App']['GetConfig'](arg1);
 }
 
+export function GetExeIcon(arg1) {
+  return window['go']['main']['App']['GetExeIcon'](arg1);
+}
+
+export function GetInitialGamePath() {
+  return window['go']['main']['App']['GetInitialGamePath']();
+}
+
 export function GetPrefixBaseDir() {
   return window['go']['main']['App']['GetPrefixBaseDir']();
 }

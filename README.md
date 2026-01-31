@@ -37,6 +37,7 @@ GoProton is a dedicated launcher designed to run non-Steam games on Linux using 
 - [FEATURES](#features)
 - [ARCHITECTURE \& EFFICIENCY](#architecture--efficiency)
 - [PREREQUISITES](#prerequisites)
+- [INSTALLATION](#installation)
 - [BUILD](#build)
 - [USAGE](#usage)
 - [STONKS!](#stonks)
@@ -65,21 +66,53 @@ GoProton is a dedicated launcher designed to run non-Steam games on Linux using 
 >
 > Use **ProtonPlus** or **Steam** to download and install different Proton versions. GoProton will automatically detect them in your Steam compatibility tools directory.
 
-## BUILD
+## INSTALLATION
+
+### Arch Linux
 
 ```bash
-# Build the wrapper, instance manager, and UI
+# Download and install using makepkg
+mkdir -p goproton && cd goproton
+curl -O https://raw.githubusercontent.com/AzPepoze/goproton/main/install/PKGBUILD
+makepkg -si
+```
+
+### Other Distributions
+
+Build from source:
+
+```bash
+git clone https://github.com/AzPepoze/goproton.git
+cd goproton
 make build
+# Binaries are in ./bin/
+```
+
+## BUILD
+
+Build from source locally:
+
+```bash
+# Install dependencies: go, nodejs, wails
+make build
+
+# Binaries will be in ./bin/
 ```
 
 ## USAGE
 
-```bash
-# Open Launcher
-./goproton
+**Arch Linux** (after `makepkg -si`):
 
-# CLI Direct Launch
-./goproton-instance --game "path/to/game.exe" --prefix "path/to/prefix" --proton-pattern "GE-Proton"
+```bash
+goproton                    # Launch UI
+goproton path/to/game.exe   # Direct launch
+```
+
+**Other Distributions** (from ./bin/):
+
+```bash
+./bin/goproton                    # Launch UI
+./bin/goproton path/to/game.exe   # Direct launch
 ```
 
 ## STONKS!

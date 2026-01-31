@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"go-proton/pkg/launcher"
 
@@ -24,6 +26,31 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
+func (a *App) GetInitialGamePath() string {
+	path := os.Getenv("GOPROTON_GAME_PATH")
+	os.Unsetenv("GOPROTON_GAME_PATH")
+	return path
+}
+
+func (a *App) GetExeIcon(exePath string) string {
+	if _, err := os.Stat(exePath); os.IsNotExist(err) {
+		return ""
+	}
+
+	cmd := exec.Command("bash", "-c", fmt.Sprintf("wrestool -x --output=. %s 2>/dev/null && ls -t *.ico 2>/dev/null | head -1", exePath))
+	output, err := cmd.Output()
+	if err == nil && len(output) > 0 {
+		icoPath := strings.TrimSpace(string(output))
+		if data, err := os.ReadFile(icoPath); err == nil {
+			defer os.Remove(icoPath)
+			encoded := base64.StdEncoding.EncodeToString(data)
+			return "data:image/x-icon;base64," + encoded
+		}
+	}
+
+	return ""
+}
+
 func (a *App) ScanProtonVersions() ([]launcher.ProtonTool, error) {
 	return launcher.GetProtonTools()
 }
@@ -38,11 +65,11 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 	_ = launcher.SaveGameConfig(opts)
 
 	instanceBin := "goproton-instance"
-	
+
 	// Try to find the binary relative to the current executable
 	exePath, _ := os.Executable()
 	exeDir := filepath.Dir(exePath)
-	
+
 	potentialPaths := []string{
 		filepath.Join(exeDir, instanceBin),
 		filepath.Join(exeDir, "../../../bin", instanceBin), // Dev mode: ui/build/bin -> root/bin
@@ -68,13 +95,21 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 		"--proton-pattern", opts.ProtonPattern,
 		"--proton-path", opts.ProtonPath,
 	}
-	if opts.EnableMangoHud { args = append(args, "--mango") }
-	if opts.EnableGamemode { args = append(args, "--gamemode") }
+	if opts.EnableMangoHud {
+		args = append(args, "--mango")
+	}
+	if opts.EnableGamemode {
+		args = append(args, "--gamemode")
+	}
 	if opts.EnableLsfgVk {
 		args = append(args, "--lsfg")
 		args = append(args, "--lsfg-mult", opts.LsfgMultiplier)
-		if opts.LsfgPerfMode { args = append(args, "--lsfg-perf") }
-		if opts.LsfgDllPath != "" { args = append(args, "--lsfg-dll-path", opts.LsfgDllPath) }
+		if opts.LsfgPerfMode {
+			args = append(args, "--lsfg-perf")
+		}
+		if opts.LsfgDllPath != "" {
+			args = append(args, "--lsfg-dll-path", opts.LsfgDllPath)
+		}
 	}
 	if opts.EnableMemoryMin {
 		args = append(args, "--memory-min")
@@ -88,9 +123,11 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 		args = append(args, "--gs-h", opts.GamescopeH)
 		args = append(args, "--gs-r", opts.GamescopeR)
 	}
-	if !showLogs { args = append(args, "--logs=false") }
+	if !showLogs {
+		args = append(args, "--logs=false")
+	}
 	cmd := exec.Command(foundPath, args...)
-	
+
 	// Start Detached
 	if err := cmd.Start(); err != nil {
 		fmt.Printf("!!! CRITICAL ERROR: Failed to start instance binary (%s): %v\n", foundPath, err)
@@ -182,7 +219,6 @@ func (a *App) DetectLosslessDll() string {
 		filepath.Join(home, ".steam/root/steamapps/common/Lossless Scaling/Lossless.dll"),
 
 		filepath.Join(home, ".local/share/Steam/steamapps/common/Lossless Scaling/Lossless.dll"),
-
 	}
 
 	for _, p := range paths {
@@ -199,23 +235,18 @@ func (a *App) DetectLosslessDll() string {
 
 }
 
-
-
 // PickFileCustom opens a file dialog with custom filters
 
 func (a *App) PickFileCustom(title string, filters []runtime.FileFilter) (string, error) {
 
 	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 
-		Title:   title,
+		Title: title,
 
 		Filters: filters,
-
 	})
 
 }
-
-
 
 // UninstallLsfg
 
@@ -258,7 +289,7 @@ func (a *App) GetTotalRam() (int, error) {
 			break
 		}
 	}
-	
+
 	if memTotalKb == 0 {
 		return 0, fmt.Errorf("failed to parse MemTotal")
 	}

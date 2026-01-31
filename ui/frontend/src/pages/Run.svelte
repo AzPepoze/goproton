@@ -11,6 +11,8 @@
 		GetPrefixBaseDir,
 		GetSystemToolsStatus,
 		LoadPrefixConfig,
+		GetInitialGamePath,
+		GetExeIcon,
 	} from "../../wailsjs/go/main/App";
 	import type { launcher } from "../../wailsjs/go/models";
 	import Dropdown from "../components/Dropdown.svelte";
@@ -21,6 +23,7 @@
 
 	// Game Selection
 	let gamePath = "";
+	let gameIcon = "";
 	let prefixPath = "";
 	let baseDir = "";
 	let selectedPrefixName = "Default";
@@ -117,6 +120,15 @@
 
 	onMount(async () => {
 		try {
+			const initialPath = await GetInitialGamePath();
+			if (initialPath) {
+				gamePath = initialPath;
+				options.GamePath = initialPath;
+				const icon = await GetExeIcon(initialPath);
+				if (icon) gameIcon = icon;
+				await loadConfigForGame(initialPath);
+			}
+
 			const [tools, prefixes, base, sysStatus] = await Promise.all([
 				ScanProtonVersions(),
 				ListPrefixes(),
@@ -160,6 +172,8 @@
 			if (path) {
 				gamePath = path;
 				options.GamePath = path;
+				const icon = await GetExeIcon(path);
+				if (icon) gameIcon = icon;
 				await loadConfigForGame(path);
 			}
 		} catch (err) {
@@ -234,6 +248,12 @@
 	</div>
 
 	<div class="form-container">
+		{#if gameIcon}
+			<div class="game-icon-display">
+				<img src={gameIcon} alt="Game Icon" class="game-icon" />
+			</div>
+		{/if}
+
 		<div class="form-group">
 			<label for="gameExe">Game Executable</label>
 			<div class="input-group">
@@ -336,6 +356,18 @@
 		gap: 24px;
 		overflow-y: auto;
 		padding-right: 8px;
+	}
+	.game-icon-display {
+		display: flex;
+		justify-content: center;
+		margin-bottom: 12px;
+		.game-icon {
+			width: 64px;
+			height: 64px;
+			border-radius: 12px;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+			object-fit: contain;
+		}
 	}
 	.form-group label {
 		display: block;

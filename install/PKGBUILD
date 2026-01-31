@@ -1,0 +1,78 @@
+# Maintainer: AzPepoze
+pkgname=goproton
+pkgver=r0.git
+pkgrel=1
+pkgdesc="Proton Instance Manager for Linux - Run Windows games with umu-run"
+arch=('x86_64')
+url="https://github.com/AzPepoze/goproton"
+license=('MIT')
+depends=('umu-launcher' 'steam')
+makedepends=('go' 'nodejs' 'wails' 'git')
+optdepends=('protonplus: recommended for managing Proton versions')
+source=("$pkgname::git+https://github.com/AzPepoze/goproton.git#branch=main")
+sha256sums=('SKIP')
+
+pkgver() {
+	cd "$srcdir/$pkgname"
+	# Get version from git tags/commits
+	printf "r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+	cd "$srcdir/$pkgname"
+	# Vendor all Go modules
+	go mod vendor
+}
+
+build() {
+	cd "$srcdir/$pkgname"
+	
+	# Set isolated build environment
+	export GOPATH="${BUILDDIR}/go"
+	export npm_config_cache="${BUILDDIR}/npm-cache"
+	export npm_config_prefix="${BUILDDIR}/npm-prefix"
+	mkdir -p "${GOPATH}" "${npm_config_cache}" "${npm_config_prefix}"
+	
+	# Build instance manager
+	go build -v -mod=vendor -o bin/goproton-instance cmd/instance/main.go
+	
+	# Build UI
+	cd ui
+	npm ci --prefer-offline --no-audit --no-fund
+	wails build -v -o ../bin/goproton-ui
+	cd ..
+	
+	# Build wrapper
+	go build -v -mod=vendor -o bin/goproton cmd/goproton/main.go
+}
+
+package() {
+	cd "$srcdir/$pkgname"
+	
+	# Install binaries
+	install -Dm755 bin/goproton "$pkgdir/usr/bin/goproton"
+	install -Dm755 bin/goproton-instance "$pkgdir/usr/bin/goproton-instance"
+	install -Dm755 bin/goproton-ui "$pkgdir/usr/bin/goproton-ui"
+	
+	# Install license
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+	
+	# Install documentation
+	install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}
+
+post_install() {
+	echo "==> GoProton installed successfully!"
+	echo "==> To launch the UI, run: goproton"
+	echo ""
+	echo "==> Make sure to install umu-launcher and Steam first:"
+	echo "    $ sudo pacman -S umu-launcher steam"
+}
+
+post_upgrade() {
+	echo "==> GoProton upgraded successfully!"
+	echo "==> Run 'goproton' to start the launcher"
+}
+
+# Clean up Go build cache after building
+trap 'cd / && rm -rf "$srcdir/$pkgname/go" 2>/dev/null; true' EXIT
