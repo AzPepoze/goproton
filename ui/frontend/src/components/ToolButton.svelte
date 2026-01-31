@@ -1,0 +1,78 @@
+<script lang="ts">
+	export let icon: string;
+	export let title: string;
+	export let subtitle: string;
+	export let loading: boolean = false;
+	export let onClick: () => void;
+</script>
+
+<button class="tool-card" class:loading on:click={onClick} disabled={loading}>
+	{#if loading}
+		<div class="spinner"></div>
+	{:else}
+		<div class="icon">{icon}</div>
+	{/if}
+	<div class="text">
+		<h3>{title}</h3>
+		<p>{loading ? "Opening..." : subtitle}</p>
+	</div>
+</button>
+
+<style lang="scss">
+	.tool-card {
+		background: rgba(255, 255, 255, 0.03);
+		border: 1px solid var(--glass-border);
+		border-radius: 16px;
+		padding: 16px;
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		cursor: pointer;
+		transition: all 0.2s;
+		color: var(--text-main);
+		text-align: left;
+		position: relative;
+		overflow: hidden;
+
+		&:hover {
+			background: rgba(255, 255, 255, 0.08);
+			border-color: var(--accent-primary);
+			transform: translateY(-2px);
+		}
+
+		&.loading {
+			opacity: 0.7;
+			cursor: wait;
+			pointer-events: none;
+		}
+
+		.icon {
+			font-size: 1.75rem;
+		}
+		h3 {
+			font-size: 1rem;
+			margin: 0;
+			font-weight: 700;
+		}
+		p {
+			font-size: 0.75rem;
+			margin: 2px 0 0 0;
+			color: var(--text-dim);
+		}
+	}
+
+	.spinner {
+		width: 28px;
+		height: 28px;
+		border: 3px solid rgba(255, 255, 255, 0.3);
+		border-radius: 50%;
+		border-top-color: var(--accent-primary);
+		animation: spin 1s ease-in-out infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+</style>

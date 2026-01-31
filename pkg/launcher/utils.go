@@ -46,7 +46,6 @@ func IsLsfgInstalled() bool {
 	if err != nil {
 		return false
 	}
-	// Check in our dedicated tool directory
 	lsfgDir := filepath.Join(home, "GoProton", "tools", "lsfg")
 	entries, err := os.ReadDir(lsfgDir)
 	if err != nil {
@@ -61,8 +60,8 @@ func IsLsfgInstalled() bool {
 	return false
 }
 
-func InstallLsfgWithLog(onProgress func(string)) error {
-	onProgress("Fetching release info from GitHub...")
+func InstallLsfgWithLog(onProgress func(int, string)) error {
+	onProgress(0, "Fetching release info from GitHub...")
 	resp, err := http.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases", LsfgRepo))
 	if err != nil {
 		return fmt.Errorf("failed to fetch releases: %w", err)
@@ -82,33 +81,31 @@ func InstallLsfgWithLog(onProgress func(string)) error {
 	var downloadURL, assetName string
 	found := false
 
-	// Pass 1: Search ALL releases for the stable pattern (x86_64 + .tar.zst)
-	for _, release := range releases {
-		for _, asset := range release.Assets {
-			name := strings.ToLower(asset.Name)
-			if strings.Contains(name, "x86_64") && strings.HasSuffix(name, ".tar.zst") {
-				downloadURL = asset.BrowserDownloadURL
-				assetName = asset.Name
-				found = true
-				break
-			}
-		}
-		if found { break }
+	patterns := []struct {
+		contains string
+		suffix   string
+	}{
+		{"x86_64", ".tar.zst"},
+		{"linux", ".tar.xz"},
 	}
 
-	// Pass 2: If still not found, search ALL releases for the dev pattern (linux + .tar.xz)
-	if !found {
+	for _, pattern := range patterns {
+		if found {
+			break
+		}
 		for _, release := range releases {
 			for _, asset := range release.Assets {
 				name := strings.ToLower(asset.Name)
-				if strings.Contains(name, "linux") && strings.HasSuffix(name, ".tar.xz") {
+				if strings.Contains(name, pattern.contains) && strings.HasSuffix(name, pattern.suffix) {
 					downloadURL = asset.BrowserDownloadURL
 					assetName = asset.Name
 					found = true
 					break
 				}
 			}
-			if found { break }
+			if found {
+				break
+			}
 		}
 	}
 
@@ -116,14 +113,16 @@ func InstallLsfgWithLog(onProgress func(string)) error {
 		return fmt.Errorf("lsfg-vk suitable linux asset not found")
 	}
 
-	onProgress(fmt.Sprintf("Downloading %s...", assetName))
+	onProgress(5, fmt.Sprintf("Downloading %s...", assetName))
 	ext := ".tar.xz"
-	if strings.HasSuffix(assetName, ".tar.zst") { ext = ".tar.zst" }
+	if strings.HasSuffix(assetName, ".tar.zst") {
+		ext = ".tar.zst"
+	}
 	tmpFile := filepath.Join(os.TempDir(), "lsfg-vk-dl"+ext)
-	
+
 	err = downloadFileWithProgress(downloadURL, tmpFile, func(current, total int64) {
-		percent := float64(current) / float64(total) * 100
-		onProgress(fmt.Sprintf("Downloading (%.1f%%)", percent))
+		percent := float64(current) / float64(total) * 80.0
+		onProgress(5+int(percent), "Downloading...")
 	})
 	if err != nil {
 		return fmt.Errorf("download failed: %w", err)
@@ -135,37 +134,32 @@ func InstallLsfgWithLog(onProgress func(string)) error {
 		return fmt.Errorf("failed to get home dir: %w", err)
 	}
 	lsfgDir := filepath.Join(home, "GoProton", "tools", "lsfg")
-	
-	onProgress("Extracting files...")
+
+	onProgress(85, "Extracting files...")
 	extractTmp, err := os.MkdirTemp("", "lsfg-extract")
 	if err != nil {
 		return fmt.Errorf("failed to create temp dir: %w", err)
 	}
 	defer os.RemoveAll(extractTmp)
 
-	// Detect compression and extract accordingly
 	extractCmd := []string{"-xf", tmpFile, "-C", extractTmp}
 	if strings.HasSuffix(tmpFile, ".tar.zst") {
-		// Ensure tar can handle zstd (common on modern Linux)
-		// Or use --zstd flag if necessary
 		extractCmd = []string{"--use-compress-program=unzstd", "-xf", tmpFile, "-C", extractTmp}
 	}
-	
+
 	cmd := exec.Command("tar", extractCmd...)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		// Fallback to simple -xf if unzstd fails
+	if _, err := cmd.CombinedOutput(); err != nil {
 		cmd = exec.Command("tar", "-xf", tmpFile, "-C", extractTmp)
-		if output, err = cmd.CombinedOutput(); err != nil {
+		if output, err := cmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("extraction failed: %s", string(output))
 		}
 	}
 
-	onProgress("Installing files to ~/GoProton/tools/lsfg...")
+	onProgress(90, "Installing files to ~/GoProton/tools/lsfg...")
 	if err := os.MkdirAll(lsfgDir, 0755); err != nil {
 		return fmt.Errorf("failed to create tools dir: %w", err)
 	}
 
-	// Move relevant files and flatten structure
 	err = filepath.Walk(extractTmp, func(srcPath string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
@@ -188,16 +182,16 @@ func InstallLsfgWithLog(onProgress func(string)) error {
 		return fmt.Errorf("failed to install files: %w", err)
 	}
 
-	// Fix JSON manifest
-	if err := fixLsfgManifest(lsfgDir, onProgress); err != nil {
-		onProgress(fmt.Sprintf("Warning: Failed to fix manifest: %v", err))
+	onProgress(95, "Fixing manifest...")
+	if err := fixLsfgManifest(lsfgDir); err != nil {
+		return fmt.Errorf("failed to fix manifest: %w", err)
 	}
 
-	onProgress("Installation complete!")
+	onProgress(100, "Installation complete!")
 	return nil
 }
 
-func fixLsfgManifest(lsfgDir string, onProgress func(string)) error {
+func fixLsfgManifest(lsfgDir string) error {
 	entries, err := os.ReadDir(lsfgDir)
 	if err != nil {
 		return err
@@ -215,7 +209,6 @@ func fixLsfgManifest(lsfgDir string, onProgress func(string)) error {
 		return fmt.Errorf("no JSON manifest found")
 	}
 
-	onProgress("Fixing library path in original JSON...")
 	jsonBytes, err := os.ReadFile(originalJson)
 	if err != nil {
 		return err
@@ -238,7 +231,7 @@ func fixLsfgManifest(lsfgDir string, onProgress func(string)) error {
 			break
 		}
 	}
-	
+
 	return os.WriteFile(originalJson, []byte(strings.Join(lines, "\n")), 0644)
 }
 

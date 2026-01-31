@@ -38,9 +38,18 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 	_ = launcher.SaveGameConfig(opts)
 
 	instanceBin := "goproton-instance"
+	
+	// Try to find the binary relative to the current executable
+	exePath, _ := os.Executable()
+	exeDir := filepath.Dir(exePath)
+	
 	potentialPaths := []string{
+		filepath.Join(exeDir, instanceBin),
+		filepath.Join(exeDir, "../../../bin", instanceBin), // Dev mode: ui/build/bin -> root/bin
 		"./" + instanceBin,
+		"./bin/" + instanceBin,
 		"../" + instanceBin,
+		"../bin/" + instanceBin, // Dev mode: CWD=ui -> root/bin
 		"/usr/bin/" + instanceBin,
 	}
 	foundPath := ""
@@ -51,7 +60,7 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 		}
 	}
 	if foundPath == "" {
-		return fmt.Errorf("instance manager (%s) not found. Please run 'make build' first", instanceBin)
+		return fmt.Errorf("instance manager (%s) not found. Checked: %v. Please run 'make build' first", instanceBin, potentialPaths)
 	}
 	args := []string{
 		"--game", opts.GamePath,
@@ -66,6 +75,12 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 		args = append(args, "--lsfg-mult", opts.LsfgMultiplier)
 		if opts.LsfgPerfMode { args = append(args, "--lsfg-perf") }
 		if opts.LsfgDllPath != "" { args = append(args, "--lsfg-dll-path", opts.LsfgDllPath) }
+	}
+	if opts.EnableMemoryMin {
+		args = append(args, "--memory-min")
+		if opts.MemoryMinValue != "" {
+			args = append(args, "--memory-min-value", opts.MemoryMinValue)
+		}
 	}
 	if opts.EnableGamescope {
 		args = append(args, "--gamescope")
@@ -117,6 +132,14 @@ func (a *App) GetConfig(exePath string) (*launcher.LaunchOptions, error) {
 	return launcher.LoadGameConfig(exePath)
 }
 
+func (a *App) SavePrefixConfig(prefixName string, opts launcher.LaunchOptions) error {
+	return launcher.SavePrefixConfig(prefixName, opts)
+}
+
+func (a *App) LoadPrefixConfig(prefixName string) (*launcher.LaunchOptions, error) {
+	return launcher.LoadPrefixConfig(prefixName)
+}
+
 func (a *App) ListPrefixes() ([]string, error) {
 	return launcher.ListPrefixes()
 }
@@ -138,8 +161,11 @@ func (a *App) GetSystemToolsStatus() launcher.SystemToolsStatus {
 }
 
 func (a *App) InstallLsfg() error {
-	return launcher.InstallLsfgWithLog(func(msg string) {
-		runtime.EventsEmit(a.ctx, "lsfg-install-progress", msg)
+	return launcher.InstallLsfgWithLog(func(percent int, msg string) {
+		runtime.EventsEmit(a.ctx, "lsfg-install-progress", map[string]interface{}{
+			"percent": percent,
+			"message": msg,
+		})
 	})
 }
 
@@ -213,4 +239,47 @@ func (a *App) CleanupProcesses() error {
 		_ = exec.Command("pkill", "-f", cmd).Run()
 	}
 	return nil
+}
+
+// GetTotalRam returns the total system RAM in GB
+func (a *App) GetTotalRam() (int, error) {
+	file, err := os.Open("/proc/meminfo")
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	var memTotalKb int
+	// Read line by line
+	var line string
+	for {
+		_, err := fmt.Fscanf(file, "%s %d kB\n", &line, &memTotalKb)
+		if err != nil || line == "MemTotal:" {
+			break
+		}
+	}
+	
+	if memTotalKb == 0 {
+		return 0, fmt.Errorf("failed to parse MemTotal")
+	}
+
+	// Convert to GB
+	return memTotalKb / 1024 / 1024, nil
+}
+
+func (a *App) GetProtonVariants() []launcher.ProtonVariant {
+	return launcher.GetKnownVariants()
+}
+
+func (a *App) GetProtonReleases(variantID string) ([]launcher.GitHubRelease, error) {
+	return launcher.FetchReleases(variantID)
+}
+
+func (a *App) InstallProtonVersion(url, version string) error {
+	return launcher.InstallProton(url, version, func(percent int, msg string) {
+		runtime.EventsEmit(a.ctx, "install-proton-progress", map[string]interface{}{
+			"percent": percent,
+			"message": msg,
+		})
+	})
 }

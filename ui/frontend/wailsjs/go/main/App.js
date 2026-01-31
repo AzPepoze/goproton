@@ -22,8 +22,20 @@ export function GetPrefixBaseDir() {
   return window['go']['main']['App']['GetPrefixBaseDir']();
 }
 
+export function GetProtonReleases(arg1) {
+  return window['go']['main']['App']['GetProtonReleases'](arg1);
+}
+
+export function GetProtonVariants() {
+  return window['go']['main']['App']['GetProtonVariants']();
+}
+
 export function GetSystemToolsStatus() {
   return window['go']['main']['App']['GetSystemToolsStatus']();
+}
+
+export function GetTotalRam() {
+  return window['go']['main']['App']['GetTotalRam']();
 }
 
 export function GetUtilsStatus() {
@@ -34,8 +46,16 @@ export function InstallLsfg() {
   return window['go']['main']['App']['InstallLsfg']();
 }
 
+export function InstallProtonVersion(arg1, arg2) {
+  return window['go']['main']['App']['InstallProtonVersion'](arg1, arg2);
+}
+
 export function ListPrefixes() {
   return window['go']['main']['App']['ListPrefixes']();
+}
+
+export function LoadPrefixConfig(arg1) {
+  return window['go']['main']['App']['LoadPrefixConfig'](arg1);
 }
 
 export function PickFile() {
@@ -56,6 +76,10 @@ export function RunGame(arg1, arg2) {
 
 export function RunPrefixTool(arg1, arg2, arg3) {
   return window['go']['main']['App']['RunPrefixTool'](arg1, arg2, arg3);
+}
+
+export function SavePrefixConfig(arg1, arg2) {
+  return window['go']['main']['App']['SavePrefixConfig'](arg1, arg2);
 }
 
 export function ScanProtonVersions() {

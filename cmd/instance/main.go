@@ -20,8 +20,8 @@ import (
 
 var (
 	gamePath, prefixPath, protonPath, protonPattern string
-	mango, gamemode, gamescope, lsfg, lsfgPerf     bool
-	gsW, gsH, gsR, lsfgMult, lsfgDllPath            string
+	mango, gamemode, gamescope, lsfg, lsfgPerf, memoryMin     bool
+	gsW, gsH, gsR, lsfgMult, lsfgDllPath, memoryMinValue            string
 	showLogs                                        bool
 	logFileHandle                                   *os.File
 )
@@ -69,6 +69,8 @@ func main() {
 	flag.StringVar(&lsfgMult, "lsfg-mult", "2", "LSFG Multiplier")
 	flag.BoolVar(&lsfgPerf, "lsfg-perf", false, "Enable LSFG Performance Mode")
 	flag.StringVar(&lsfgDllPath, "lsfg-dll-path", "", "Path to Lossless.dll")
+	flag.BoolVar(&memoryMin, "memory-min", false, "Enable Memory Protection (min RAM)")
+	flag.StringVar(&memoryMinValue, "memory-min-value", "", "Memory Protection Value (e.g. 4G)")
 	flag.StringVar(&gsW, "gs-w", "1920", "Width")
 	flag.StringVar(&gsH, "gs-h", "1080", "Height")
 	flag.StringVar(&gsR, "gs-r", "60", "Refresh Rate")
@@ -118,6 +120,7 @@ func onReady(logPath string) {
 		EnableMangoHud: mango, EnableGamemode: gamemode, EnableGamescope: gamescope,
 		GamescopeW: gsW, GamescopeH: gsH, GamescopeR: gsR,
 		EnableLsfgVk: lsfg, LsfgMultiplier: lsfgMult, LsfgPerfMode: lsfgPerf, LsfgDllPath: lsfgDllPath,
+		EnableMemoryMin: memoryMin, MemoryMinValue: memoryMinValue,
 	}
 	cmdArgs, env := launcher.BuildCommand(opts)
 
@@ -128,6 +131,7 @@ func onReady(logPath string) {
 	if gamemode { log.Printf("  [+] GameMode") }
 	if gamescope { log.Printf("  [+] Gamescope (%sx%s@%s)", gsW, gsH, gsR) }
 	if lsfg { log.Printf("  [+] LSFG-VK (x%s, PerfMode:%v)", lsfgMult, lsfgPerf) }
+	if memoryMin { log.Printf("  [+] Memory Protection (Min: %s)", memoryMinValue) }
 
 	log.Printf("CUSTOM ENVIRONMENT VARIABLES:")
 	sysEnv := os.Environ()

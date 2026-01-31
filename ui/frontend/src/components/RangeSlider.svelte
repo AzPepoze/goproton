@@ -1,0 +1,258 @@
+<script lang="ts">
+	export let value: number = 4;
+	export let max: number = 16;
+	export let snapValues: number[] = [4, 8, 12, 16, 24, 32, 64];
+	export let onChange: (value: number) => void = () => {};
+
+	const warningPercentage = 0.75; // 75% of max RAM is warning zone
+
+	let isDragging = false;
+	let trackElement: HTMLElement;
+	let percentage = 0;
+
+	$: {
+		percentage = (value / max) * 100;
+	}
+
+	function handleStart(e: MouseEvent | TouchEvent) {
+		isDragging = true;
+		updateValue(e);
+		window.addEventListener("mousemove", handleMove);
+		window.addEventListener("touchmove", handleMove);
+		window.addEventListener("mouseup", handleEnd);
+		window.addEventListener("touchend", handleEnd);
+	}
+
+	function handleEnd() {
+		isDragging = false;
+		window.removeEventListener("mousemove", handleMove);
+		window.removeEventListener("touchmove", handleMove);
+		window.removeEventListener("mouseup", handleEnd);
+		window.removeEventListener("touchend", handleEnd);
+	}
+
+	function handleMove(e: MouseEvent | TouchEvent) {
+		if (!isDragging) return;
+		updateValue(e);
+	}
+
+	function updateValue(e: MouseEvent | TouchEvent) {
+		const rect = trackElement.getBoundingClientRect();
+		const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+		let x = clientX - rect.left;
+		x = Math.max(0, Math.min(x, rect.width));
+
+		let rawValue = (x / rect.width) * max;
+
+		let closest = rawValue;
+		closest = Math.round(rawValue * 10) / 10;
+
+		// Snap to integers and specific values if very close
+		for (const snap of snapValues) {
+			if (snap > max) continue;
+			const diff = Math.abs(rawValue - snap);
+			if (diff < 0.5) {
+				closest = snap;
+			}
+		}
+
+		if (closest < 0.1) closest = 0.1;
+
+		value = closest;
+		onChange(value);
+	}
+
+	$: isWarning = value > max * warningPercentage;
+</script>
+
+<div class="range-container">
+	<div class="range-header">
+		<div class="range-label">
+			<span>{value} GB</span>
+			<span class="sub-label">/ {max} GB Total</span>
+		</div>
+		<div class="input-wrapper">
+			<input
+				type="number"
+				step="0.1"
+				min="0.1"
+				{max}
+				bind:value
+				on:input={() => onChange(value)}
+				class="manual-input"
+			/>
+			<span class="unit">GB</span>
+		</div>
+	</div>
+
+	<div
+		class="track-wrapper"
+		bind:this={trackElement}
+		on:mousedown={handleStart}
+		on:touchstart|nonpassive={handleStart}
+	>
+		<div class="track">
+			<!-- Warning Zone Background -->
+			<div
+				class="warning-zone"
+				style="width: {(1 - warningPercentage) * 100}%; left: {warningPercentage * 100}%"
+			></div>
+
+			<!-- Fill -->
+			<div class="fill {isWarning ? 'warning' : ''}" style="width: {percentage}%"></div>
+
+			<!-- Thumb -->
+			<div class="thumb {isDragging ? 'active' : ''}" style="left: {percentage}%"></div>
+
+			<!-- Snap Points -->
+			{#each snapValues as point}
+				{#if point <= max}
+					<div class="snap-point" style="left: {(point / max) * 100}%"></div>
+				{/if}
+			{/each}
+		</div>
+	</div>
+
+	{#if isWarning}
+		<div class="warning-text">⚠️ High memory usage may affect system stability</div>
+	{/if}
+</div>
+
+<style lang="scss">
+	.range-container {
+		width: 100%;
+		padding: 8px 0;
+		user-select: none;
+	}
+
+	.range-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 12px;
+	}
+
+	.range-label {
+		display: flex;
+		flex-direction: column;
+		font-size: 1.25rem;
+		font-weight: bold;
+		color: var(--text-main);
+
+		.sub-label {
+			font-size: 0.75rem;
+			font-weight: normal;
+			color: var(--text-dim);
+		}
+	}
+
+	.input-wrapper {
+		display: flex;
+		align-items: center;
+		background: rgba(0, 0, 0, 0.3);
+		border-radius: 6px;
+		padding: 4px 8px;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+
+		&:focus-within {
+			border-color: var(--accent-primary);
+		}
+
+		.manual-input {
+			background: transparent;
+			border: none;
+			color: white;
+			width: 60px;
+			text-align: right;
+			font-weight: bold;
+			font-size: 1rem;
+			outline: none;
+
+			/* Remove arrows */
+			&::-webkit-inner-spin-button,
+			&::-webkit-outer-spin-button {
+				-webkit-appearance: none;
+				margin: 0;
+			}
+		}
+
+		.unit {
+			margin-left: 4px;
+			font-size: 0.8rem;
+			color: var(--text-muted);
+		}
+	}
+
+	.track-wrapper {
+		height: 32px;
+		display: flex;
+		align-items: center;
+		cursor: pointer;
+		touch-action: none;
+	}
+
+	.track {
+		position: relative;
+		width: 100%;
+		height: 8px;
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 4px;
+		overflow: visible; // Allow thumb to overflow
+	}
+
+	.warning-zone {
+		position: absolute;
+		height: 100%;
+		background: rgba(239, 68, 68, 0.2); // Red tint
+		border-radius: 0 4px 4px 0;
+		pointer-events: none;
+	}
+
+	.fill {
+		position: absolute;
+		height: 100%;
+		left: 0;
+		top: 0;
+		background: var(--accent-primary);
+		border-radius: 4px;
+		transition: background 0.2s;
+
+		&.warning {
+			background: #ef4444; // Red
+		}
+	}
+
+	.thumb {
+		position: absolute;
+		top: 50%;
+		width: 20px;
+		height: 20px;
+		background: white;
+		border-radius: 50%;
+		transform: translate(-50%, -50%);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+		transition: transform 0.1s;
+		pointer-events: none; // Let wrapper handle events
+
+		&.active {
+			transform: translate(-50%, -50%) scale(1.2);
+		}
+	}
+
+	.snap-point {
+		position: absolute;
+		top: 50%;
+		width: 2px;
+		height: 4px;
+		background: rgba(255, 255, 255, 0.3);
+		transform: translate(-50%, -50%);
+		pointer-events: none;
+	}
+
+	.warning-text {
+		margin-top: 8px;
+		font-size: 0.75rem;
+		color: #ef4444;
+		text-align: right;
+	}
+</style>

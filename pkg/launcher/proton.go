@@ -28,9 +28,17 @@ func GetProtonTools() ([]ProtonTool, error) {
 		path    string
 		isSteam bool
 	}{
-		{filepath.Join(u.HomeDir, ".steam/root/compatibilitytools.d"), true},
-		{filepath.Join(u.HomeDir, ".local/share/Steam/compatibilitytools.d"), true},
+		// Custom compatibility tools
+		{filepath.Join(u.HomeDir, ".steam/root/compatibilitytools.d"), false},
+		{filepath.Join(u.HomeDir, ".local/share/Steam/compatibilitytools.d"), false},
 		{"/usr/share/steam/compatibilitytools.d", false},
+
+		// Official Steam Proton versions (in steamapps/common)
+		{filepath.Join(u.HomeDir, ".steam/root/steamapps/common"), true},
+		{filepath.Join(u.HomeDir, ".local/share/Steam/steamapps/common"), true},
+
+		// Custom user path
+		{filepath.Join(u.HomeDir, "GoProton/protons"), false},
 	}
 
 	var tools []ProtonTool

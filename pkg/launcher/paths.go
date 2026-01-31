@@ -1,0 +1,64 @@
+package launcher
+
+import (
+	"crypto/sha1"
+	"encoding/hex"
+	"os"
+	"path/filepath"
+)
+
+func GetBaseDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "GoProton"
+	}
+	return filepath.Join(home, "GoProton")
+}
+
+func GetConfigDir() string {
+	return filepath.Join(GetBaseDir(), "config", "executables")
+}
+
+func GetPrefixBaseDir() string {
+	return filepath.Join(GetBaseDir(), "prefixes")
+}
+
+func GetConfigPath(exePath string) string {
+	h := sha1.New()
+	h.Write([]byte(exePath))
+	filename := hex.EncodeToString(h.Sum(nil)) + ".json"
+	return filepath.Join(GetConfigDir(), filename)
+}
+
+func GetPrefixConfigPath(prefixName string) string {
+	return filepath.Join(GetPrefixBaseDir(), prefixName, "goproton.json")
+}
+
+func ListPrefixes() ([]string, error) {
+	base := GetPrefixBaseDir()
+	if err := os.MkdirAll(base, 0755); err != nil {
+		return []string{"Default"}, nil
+	}
+	entries, err := os.ReadDir(base)
+	if err != nil {
+		return []string{"Default"}, nil
+	}
+
+	var prefixes []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			prefixes = append(prefixes, entry.Name())
+		}
+	}
+
+	if len(prefixes) == 0 {
+		_ = os.MkdirAll(filepath.Join(base, "Default"), 0755)
+		prefixes = append(prefixes, "Default")
+	}
+	return prefixes, nil
+}
+
+func CreatePrefix(name string) error {
+	path := filepath.Join(GetPrefixBaseDir(), name)
+	return os.MkdirAll(path, 0755)
+}

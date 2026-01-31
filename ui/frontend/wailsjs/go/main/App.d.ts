@@ -13,13 +13,23 @@ export function GetConfig(arg1:string):Promise<launcher.LaunchOptions>;
 
 export function GetPrefixBaseDir():Promise<string>;
 
+export function GetProtonReleases(arg1:string):Promise<Array<launcher.GitHubRelease>>;
+
+export function GetProtonVariants():Promise<Array<launcher.ProtonVariant>>;
+
 export function GetSystemToolsStatus():Promise<launcher.SystemToolsStatus>;
+
+export function GetTotalRam():Promise<number>;
 
 export function GetUtilsStatus():Promise<launcher.UtilsStatus>;
 
 export function InstallLsfg():Promise<void>;
 
+export function InstallProtonVersion(arg1:string,arg2:string):Promise<void>;
+
 export function ListPrefixes():Promise<Array<string>>;
+
+export function LoadPrefixConfig(arg1:string):Promise<launcher.LaunchOptions>;
 
 export function PickFile():Promise<string>;
 
@@ -30,6 +40,8 @@ export function PickFolder():Promise<string>;
 export function RunGame(arg1:launcher.LaunchOptions,arg2:boolean):Promise<void>;
 
 export function RunPrefixTool(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function SavePrefixConfig(arg1:string,arg2:launcher.LaunchOptions):Promise<void>;
 
 export function ScanProtonVersions():Promise<Array<launcher.ProtonTool>>;
 
