@@ -31,19 +31,19 @@ build() {
 	export GOPATH="${BUILDDIR}/go"
 	export npm_config_cache="${BUILDDIR}/npm-cache"
 	export npm_config_prefix="${BUILDDIR}/npm-prefix"
+	export PATH="${GOPATH}/bin:$PATH"
 	mkdir -p "${GOPATH}" "${npm_config_cache}" "${npm_config_prefix}"
 	
-	# Build instance manager
-	go build -v -mod=vendor -o bin/goproton-instance cmd/instance/main.go
+	# Install wails CLI
+	go install github.com/wailsapp/wails/v2/cmd/wails@latest
 	
-	# Build UI
-	cd ui
-	npm install --prefer-offline --no-audit --no-fund
-	npx wails build -v -o ../bin/goproton-ui
-	cd ..
+	# Install frontend dependencies
+	cd ui/frontend
+	npm install --preferred-offline --no-audit --no-fund --verbose
+	cd ../..
 	
-	# Build wrapper
-	go build -v -mod=vendor -o bin/goproton cmd/goproton/main.go
+	# Build using Makefile
+	make build
 }
 
 package() {
@@ -53,6 +53,9 @@ package() {
 	install -Dm755 bin/goproton "$pkgdir/usr/bin/goproton"
 	install -Dm755 bin/goproton-instance "$pkgdir/usr/bin/goproton-instance"
 	install -Dm755 bin/goproton-ui "$pkgdir/usr/bin/goproton-ui"
+	
+	# Install desktop file
+	install -Dm644 install/goproton.desktop "$pkgdir/usr/share/applications/goproton.desktop"
 	
 	# Install license
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
@@ -75,4 +78,4 @@ post_upgrade() {
 }
 
 # Clean up Go build cache after building
-trap 'cd / && rm -rf "$srcdir/$pkgname/go" 2>/dev/null; true' EXIT
+trap 'cd / && chmod -R u+w "$srcdir/$pkgname/go" 2>/dev/null || true; rm -rf "$srcdir/$pkgname/go" 2>/dev/null || true' EXIT

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=GoProton
+Comment=Proton Instance Manager for Linux
+Exec=goproton
+Icon=goproton
+Categories=Game;Utility;
+Terminal=false
+StartupNotify=true
