@@ -12,6 +12,9 @@ func main() {
 	if _, err := os.Stat(uiPath); os.IsNotExist(err) {
 		uiPath = "./ui/build/bin/goproton-ui"
 	}
+	if _, err := os.Stat(uiPath); os.IsNotExist(err) {
+		uiPath = "/usr/bin/goproton-ui"
+	}
 
 	if _, err := os.Stat(uiPath); os.IsNotExist(err) {
 		fmt.Println("Error: UI binary not found. Please run 'make build' first.")
