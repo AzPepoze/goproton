@@ -23,6 +23,9 @@
 	import { runState } from "../stores/runState";
 	import { get } from "svelte/store";
 
+	// Component State
+	let mounted = false;
+
 	// Game Selection
 	let gamePath = "";
 	let gameIcon = "";
@@ -44,6 +47,7 @@
 	let showValidationModal = false;
 	let missingToolsList: string[] = [];
 	let systemStatus: launcher.SystemToolsStatus = { hasGamescope: false, hasMangoHud: false, hasGameMode: false };
+	let iconLoadFailed = false;
 
 	// Config
 	let options: launcher.LaunchOptions = {
@@ -140,7 +144,14 @@
 				gamePath = initialPath;
 				options.GamePath = initialPath;
 				const icon = await GetExeIcon(initialPath);
-				if (icon) gameIcon = icon;
+				if (icon) {
+					gameIcon = icon;
+				} else {
+					iconLoadFailed = true;
+					notifications.info(
+						"Could not extract icon. Please install 'icoutils' or 'icoextract' to display game icons.",
+					);
+				}
 				await loadConfigForGame(initialPath);
 			}
 
@@ -170,10 +181,13 @@
 			console.error("Failed to initialize:", err);
 		} finally {
 			isLoadingProton = false;
+			mounted = true;
 		}
 	});
 
-	$: runState.set({ gamePath, gameIcon, prefixPath, selectedPrefixName, selectedProton, options });
+	$: if (mounted) {
+		runState.set({ gamePath, gameIcon, prefixPath, selectedPrefixName, selectedProton, options });
+	}
 
 	async function handlePrefixChange(name: string) {
 		if (name !== "Custom...") {
@@ -189,12 +203,22 @@
 			if (path) {
 				gamePath = path;
 				options.GamePath = path;
+				iconLoadFailed = false;
 				const icon = await GetExeIcon(path);
-				if (icon) gameIcon = icon;
+				if (icon) {
+					gameIcon = icon;
+				} else {
+					gameIcon = "";
+					iconLoadFailed = true;
+					notifications.info(
+						"Could not extract icon. Please install 'icoutils' or 'icoextract' to display game icons.",
+					);
+				}
 				await loadConfigForGame(path);
 			}
 		} catch (err) {
-			console.error(err);
+			console.error("Error loading game:", err);
+			iconLoadFailed = true;
 		}
 	}
 
@@ -265,23 +289,54 @@
 	</div>
 
 	<div class="form-container">
-		{#if gameIcon}
-			<div class="game-icon-display">
-				<img src={gameIcon} alt="Game Icon" class="game-icon" />
-			</div>
-		{/if}
-
-		<div class="form-group">
+		<div class="form-group game-exe-group">
 			<label for="gameExe">Game Executable</label>
-			<div class="input-group">
-				<input
-					id="gameExe"
-					type="text"
-					bind:value={gamePath}
-					placeholder="Select .exe file..."
-					class="input"
-				/>
-				<button on:click={handleBrowseGame} class="btn">Browse</button>
+			<div class="game-exe-wrapper">
+				<div class="game-icon-display">
+					{#if gameIcon && !iconLoadFailed}
+						<img
+							src={gameIcon}
+							alt="Game Icon"
+							class="game-icon"
+							on:load={() => {
+								console.log("Icon loaded successfully");
+								iconLoadFailed = false;
+							}}
+							on:error={(e) => {
+								console.error("Icon failed to load:", e);
+								iconLoadFailed = true;
+							}}
+						/>
+					{:else}
+						<div class="game-icon-placeholder">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="32"
+								height="32"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+								<line x1="8" y1="21" x2="16" y2="21"></line>
+								<line x1="12" y1="17" x2="12" y2="21"></line>
+							</svg>
+						</div>
+					{/if}
+				</div>
+				<div class="input-group game-exe-input-group">
+					<input
+						id="gameExe"
+						type="text"
+						bind:value={gamePath}
+						placeholder="Select .exe file..."
+						class="input"
+					/>
+					<button on:click={handleBrowseGame} class="btn">Browse</button>
+				</div>
 			</div>
 		</div>
 
@@ -374,16 +429,46 @@
 		overflow-y: auto;
 		padding-right: 8px;
 	}
+	.game-exe-group {
+		.game-exe-wrapper {
+			display: flex;
+			gap: 16px;
+			align-items: flex-end;
+		}
+		.game-exe-input-group {
+			flex: 1;
+			flex-direction: row;
+		}
+	}
 	.game-icon-display {
 		display: flex;
+		align-items: center;
 		justify-content: center;
-		margin-bottom: 12px;
+		width: 80px;
+		height: 80px;
+		border-radius: 12px;
+		background: rgba(0, 0, 0, 0.3);
+		border: 1px solid var(--glass-border);
+		flex-shrink: 0;
 		.game-icon {
-			width: 64px;
-			height: 64px;
+			width: 100%;
+			height: 100%;
 			border-radius: 12px;
-			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 			object-fit: contain;
+			padding: 4px;
+		}
+		.game-icon-placeholder {
+			width: 100%;
+			height: 100%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: var(--text-muted);
+			svg {
+				width: 40px;
+				height: 40px;
+				opacity: 0.5;
+			}
 		}
 	}
 	.form-group label {

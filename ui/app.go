@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"go-proton/pkg/launcher"
 
@@ -37,18 +36,45 @@ func (a *App) GetExeIcon(exePath string) string {
 		return ""
 	}
 
-	cmd := exec.Command("bash", "-c", fmt.Sprintf("wrestool -x --output=. %s 2>/dev/null && ls -t *.ico 2>/dev/null | head -1", exePath))
-	output, err := cmd.Output()
-	if err == nil && len(output) > 0 {
-		icoPath := strings.TrimSpace(string(output))
-		if data, err := os.ReadFile(icoPath); err == nil {
-			defer os.Remove(icoPath)
-			encoded := base64.StdEncoding.EncodeToString(data)
-			return "data:image/x-icon;base64," + encoded
+	tempDir, err := os.MkdirTemp("", "goproton-icon-*")
+	if err != nil {
+		return ""
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Try using wrestool first
+	cmd := exec.Command("wrestool", "-x", "--output="+tempDir, exePath)
+	if err := cmd.Run(); err == nil {
+		matches, _ := filepath.Glob(filepath.Join(tempDir, "*.ico"))
+		if len(matches) > 0 && tryReadIcon(matches[0]) != "" {
+			return tryReadIcon(matches[0])
+		}
+	}
+
+	// Fallback: try icoextract
+	cmd = exec.Command("icoextract", exePath, filepath.Join(tempDir, "icon.ico"))
+	if err := cmd.Run(); err == nil {
+		icoPath := filepath.Join(tempDir, "icon.ico")
+		if icon := tryReadIcon(icoPath); icon != "" {
+			return icon
+		}
+
+		// Check for alternative names
+		matches, _ := filepath.Glob(filepath.Join(tempDir, "*.ico"))
+		if len(matches) > 0 {
+			return tryReadIcon(matches[0])
 		}
 	}
 
 	return ""
+}
+
+func tryReadIcon(icoPath string) string {
+	data, err := os.ReadFile(icoPath)
+	if err != nil || len(data) == 0 {
+		return ""
+	}
+	return "data:image/x-icon;base64," + base64.StdEncoding.EncodeToString(data)
 }
 
 func (a *App) ScanProtonVersions() ([]launcher.ProtonTool, error) {
