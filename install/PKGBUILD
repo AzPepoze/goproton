@@ -38,8 +38,8 @@ build() {
 	
 	# Build UI
 	cd ui
-	npm ci --prefer-offline --no-audit --no-fund
-	wails build -v -o ../bin/goproton-ui
+	npm install --prefer-offline --no-audit --no-fund
+	npx wails build -v -o ../bin/goproton-ui
 	cd ..
 	
 	# Build wrapper
