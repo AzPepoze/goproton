@@ -108,6 +108,8 @@ body {
 	outline: none;
 	font-family: inherit;
 	transition: all 0.2s;
+	box-sizing: border-box;
+	max-width: 100%;
 
 	&:focus {
 		border-color: var(--text-muted);

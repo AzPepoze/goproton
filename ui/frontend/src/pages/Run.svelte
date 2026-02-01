@@ -20,6 +20,8 @@
 	import SlideButton from "../components/SlideButton.svelte";
 	import Modal from "../components/Modal.svelte";
 	import { notifications } from "../notificationStore";
+	import { runState } from "../stores/runState";
+	import { get } from "svelte/store";
 
 	// Game Selection
 	let gamePath = "";
@@ -120,8 +122,21 @@
 
 	onMount(async () => {
 		try {
+			const s = get(runState);
+			if (s) {
+				if (s.gamePath) {
+					gamePath = s.gamePath;
+					options.GamePath = s.gamePath;
+				}
+				if (s.gameIcon) gameIcon = s.gameIcon;
+				if (s.prefixPath) prefixPath = s.prefixPath;
+				if (s.selectedPrefixName) selectedPrefixName = s.selectedPrefixName;
+				if (s.selectedProton) selectedProton = s.selectedProton;
+				if (s.options) options = { ...options, ...s.options };
+			}
+
 			const initialPath = await GetInitialGamePath();
-			if (initialPath) {
+			if (initialPath && !gamePath) {
 				gamePath = initialPath;
 				options.GamePath = initialPath;
 				const icon = await GetExeIcon(initialPath);
@@ -138,7 +153,7 @@
 			if (tools) {
 				protonVersions = tools;
 				protonOptions = tools.map((t) => t.DisplayName);
-				if (protonOptions.length > 0) {
+				if (protonOptions.length > 0 && !selectedProton) {
 					selectedProton = protonOptions[0];
 				}
 			}
@@ -157,6 +172,8 @@
 			isLoadingProton = false;
 		}
 	});
+
+	$: runState.set({ gamePath, gameIcon, prefixPath, selectedPrefixName, selectedProton, options });
 
 	async function handlePrefixChange(name: string) {
 		if (name !== "Custom...") {

@@ -216,6 +216,11 @@
 		color: var(--text-muted);
 		margin-bottom: 8px;
 	}
+
+	.form-group .input {
+		width: 100%;
+		display: block;
+	}
 	.input-group {
 		display: flex;
 		gap: 12px;

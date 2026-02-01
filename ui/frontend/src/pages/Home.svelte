@@ -134,6 +134,7 @@
 			color: var(--text-muted);
 			margin: 0;
 			line-height: 1.5;
+			text-align: left;
 		}
 
 		&.hoverable {
