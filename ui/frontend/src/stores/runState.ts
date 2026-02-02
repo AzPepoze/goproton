@@ -4,6 +4,7 @@ import type { launcher } from "../../wailsjs/go/models";
 export interface RunState {
 	gamePath: string;
 	gameIcon: string;
+	launcherIcon: string;
 	prefixPath: string;
 	selectedPrefixName: string;
 	selectedProton: string;
@@ -12,6 +13,8 @@ export interface RunState {
 
 const defaultOptions: launcher.LaunchOptions = {
 	GamePath: "",
+	LauncherPath: "",
+	UseGameExe: false,
 	PrefixPath: "",
 	ProtonPattern: "",
 	ProtonPath: "",
@@ -26,6 +29,10 @@ const defaultOptions: launcher.LaunchOptions = {
 	LsfgMultiplier: "2",
 	LsfgPerfMode: false,
 	LsfgDllPath: "",
+	LsfgGpu: "",
+	LsfgFlowScale: "",
+	LsfgPacing: "",
+	LsfgAllowFp16: false,
 	EnableMemoryMin: false,
 	MemoryMinValue: "4G",
 };
@@ -33,6 +40,7 @@ const defaultOptions: launcher.LaunchOptions = {
 const initial: RunState = {
 	gamePath: "",
 	gameIcon: "",
+	launcherIcon: "",
 	prefixPath: "",
 	selectedPrefixName: "Default",
 	selectedProton: "",

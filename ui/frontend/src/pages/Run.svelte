@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { WindowHide } from "../../wailsjs/runtime/runtime";
 	import {
 		PickFile,
 		PickFolder,
@@ -12,6 +11,7 @@
 		GetSystemToolsStatus,
 		LoadPrefixConfig,
 		GetInitialGamePath,
+		DetectLosslessDll,
 		GetExeIcon,
 	} from "../../wailsjs/go/main/App";
 	import type { launcher } from "../../wailsjs/go/models";
@@ -19,9 +19,12 @@
 	import ConfigForm from "../components/ConfigForm.svelte";
 	import SlideButton from "../components/SlideButton.svelte";
 	import Modal from "../components/Modal.svelte";
+	import ExecutableSelector from "../components/ExecutableSelector.svelte";
 	import { notifications } from "../notificationStore";
 	import { runState } from "../stores/runState";
+	import { navigateToEditLsfg } from "../stores/navigationStore";
 	import { get } from "svelte/store";
+	import { WindowHide } from "../../wailsjs/runtime/runtime";
 
 	// Component State
 	let mounted = false;
@@ -29,6 +32,7 @@
 	// Game Selection
 	let gamePath = "";
 	let gameIcon = "";
+	let launcherIcon = "";
 	let prefixPath = "";
 	let baseDir = "";
 	let selectedPrefixName = "Default";
@@ -47,11 +51,12 @@
 	let showValidationModal = false;
 	let missingToolsList: string[] = [];
 	let systemStatus: launcher.SystemToolsStatus = { hasGamescope: false, hasMangoHud: false, hasGameMode: false };
-	let iconLoadFailed = false;
 
 	// Config
 	let options: launcher.LaunchOptions = {
 		GamePath: "",
+		LauncherPath: "",
+		UseGameExe: false,
 		PrefixPath: "",
 		ProtonPattern: "",
 		ProtonPath: "",
@@ -66,6 +71,10 @@
 		LsfgMultiplier: "2",
 		LsfgPerfMode: false,
 		LsfgDllPath: "",
+		LsfgGpu: "",
+		LsfgFlowScale: "0.8",
+		LsfgPacing: "none",
+		LsfgAllowFp16: false,
 		EnableMemoryMin: false,
 		MemoryMinValue: "4G",
 	};
@@ -83,6 +92,18 @@
 				applyConfigToOptions(config);
 			} else {
 				await loadConfigForPrefix(selectedPrefixName);
+			}
+
+			// Auto-detect Lossless.dll if not already set
+			if (!options.LsfgDllPath) {
+				try {
+					const dll = await DetectLosslessDll();
+					if (dll) {
+						options.LsfgDllPath = dll;
+					}
+				} catch (err) {
+					console.error("Failed to detect Lossless.dll:", err);
+				}
 			}
 		} catch (err) {}
 	}
@@ -116,6 +137,29 @@
 		options.LsfgMultiplier = config.LsfgMultiplier || "2";
 		options.LsfgPerfMode = config.LsfgPerfMode;
 		options.LsfgDllPath = config.LsfgDllPath || "";
+		options.LsfgGpu = config.LsfgGpu || "";
+		options.LsfgFlowScale = config.LsfgFlowScale || "0.8";
+		options.LsfgPacing = config.LsfgPacing || "none";
+		options.LsfgAllowFp16 = config.LsfgAllowFp16 || false;
+		// IMPORTANT: Only apply LauncherPath from config if we don't already have one selected
+		if (!options.LauncherPath && config.LauncherPath) {
+			options.LauncherPath = config.LauncherPath;
+		}
+		options.UseGameExe = config.UseGameExe === true; // Default to false (launcher-only)
+
+		// CRITICAL: If UseGameExe is false, GamePath must equal LauncherPath (launcher-only mode)
+		// If UseGameExe is true, GamePath should be a separate game exe
+		if (!options.UseGameExe && options.LauncherPath) {
+			options.GamePath = options.LauncherPath;
+			console.log("[CONFIG] UseGameExe=false: enforcing GamePath=LauncherPath (launcher-only mode)");
+			console.log("[CONFIG]   GamePath set to:", options.LauncherPath);
+		} else if (options.UseGameExe && config.GamePath) {
+			// Only load GamePath from config if UseGameExe is true (separate game exe)
+			options.GamePath = config.GamePath;
+			console.log("[CONFIG] UseGameExe=true: loaded separate game exe from config");
+			console.log("[CONFIG]   GamePath set to:", config.GamePath);
+		}
+
 		options.EnableGamescope = config.EnableGamescope;
 		options.GamescopeW = config.GamescopeW || "1920";
 		options.GamescopeH = config.GamescopeH || "1080";
@@ -133,6 +177,7 @@
 					options.GamePath = s.gamePath;
 				}
 				if (s.gameIcon) gameIcon = s.gameIcon;
+				if (s.launcherIcon) launcherIcon = s.launcherIcon;
 				if (s.prefixPath) prefixPath = s.prefixPath;
 				if (s.selectedPrefixName) selectedPrefixName = s.selectedPrefixName;
 				if (s.selectedProton) selectedProton = s.selectedProton;
@@ -140,19 +185,31 @@
 			}
 
 			const initialPath = await GetInitialGamePath();
-			if (initialPath && !gamePath) {
-				gamePath = initialPath;
-				options.GamePath = initialPath;
-				const icon = await GetExeIcon(initialPath);
-				if (icon) {
-					gameIcon = icon;
-				} else {
-					iconLoadFailed = true;
-					notifications.info(
-						"Could not extract icon. Please install 'icoutils' or 'icoextract' to display game icons.",
-					);
+			if (initialPath) {
+				// Only set as game/launcher if not already set, or if explicitly passed from tray
+				if (!options.LauncherPath && !options.GamePath) {
+					// No prior state - set initial path as launcher
+					options.LauncherPath = initialPath;
+					const icon = await GetExeIcon(initialPath);
+					if (icon) launcherIcon = icon;
+				} else if (!options.GamePath || options.GamePath === options.LauncherPath) {
+					// Prior state has launcher but no game - set initial path as game
+					gamePath = initialPath;
+					options.GamePath = initialPath;
+					const icon = await GetExeIcon(initialPath);
+					if (icon) gameIcon = icon;
+					await loadConfigForGame(initialPath);
 				}
-				await loadConfigForGame(initialPath);
+			}
+
+			// Load icons for any paths that don't have icons yet
+			if (options.LauncherPath && !launcherIcon) {
+				const icon = await GetExeIcon(options.LauncherPath);
+				if (icon) launcherIcon = icon;
+			}
+			if (options.GamePath && !gameIcon) {
+				const icon = await GetExeIcon(options.GamePath);
+				if (icon) gameIcon = icon;
 			}
 
 			const [tools, prefixes, base, sysStatus] = await Promise.all([
@@ -186,7 +243,7 @@
 	});
 
 	$: if (mounted) {
-		runState.set({ gamePath, gameIcon, prefixPath, selectedPrefixName, selectedProton, options });
+		runState.set({ gamePath, gameIcon, launcherIcon, prefixPath, selectedPrefixName, selectedProton, options });
 	}
 
 	async function handlePrefixChange(name: string) {
@@ -201,24 +258,51 @@
 		try {
 			const path = await PickFile();
 			if (path) {
+				console.log("[GAME] Selected game exe:", path);
+				console.log("[GAME] Current LauncherPath before game selection:", options.LauncherPath);
 				gamePath = path;
-				options.GamePath = path;
-				iconLoadFailed = false;
-				const icon = await GetExeIcon(path);
-				if (icon) {
-					gameIcon = icon;
-				} else {
-					gameIcon = "";
-					iconLoadFailed = true;
-					notifications.info(
-						"Could not extract icon. Please install 'icoutils' or 'icoextract' to display game icons.",
-					);
-				}
-				await loadConfigForGame(path);
+				// Use object spread to trigger Svelte reactivity
+				options = { ...options, GamePath: path };
+				console.log("[GAME] Set options.GamePath to:", options.GamePath);
+				console.log("[GAME] LauncherPath after game selection:", options.LauncherPath);
+				console.log("[GAME] Full options object:", JSON.stringify(options));
+				// NOTE: Do NOT load config for game exe
+				// Game exe is only for LSFG profile matching
+				// Configuration is ALWAYS saved under launcher exe path only
 			}
 		} catch (err) {
-			console.error("Error loading game:", err);
-			iconLoadFailed = true;
+			console.error("[GAME] Error loading game:", err);
+		}
+	}
+
+	async function handleBrowseLauncher() {
+		try {
+			const path = await PickFile();
+			if (path) {
+				console.log("[LAUNCHER] Selected launcher exe:", path);
+				options = { ...options, LauncherPath: path };
+				console.log("[LAUNCHER] Set options.LauncherPath to:", options.LauncherPath);
+				console.log("[LAUNCHER] Full options object after assignment:", JSON.stringify(options));
+
+				// Only set GamePath if user has not explicitly selected a separate game exe
+				if (!gamePath) {
+					console.log(
+						"[LAUNCHER] No separate game exe selected by user, initializing GamePath to launcher",
+					);
+					options = { ...options, GamePath: path };
+					console.log("[LAUNCHER] Set GamePath to launcher path:", options.GamePath);
+				} else {
+					console.log("[LAUNCHER] User already selected separate game exe, keeping GamePath:", gamePath);
+				}
+
+				// Load config for the launcher
+				// applyConfigToOptions will enforce UseGameExe if true
+				console.log("[LAUNCHER] Loading config for launcher path...");
+				await loadConfigForGame(path);
+				console.log("[LAUNCHER] Config loaded, final GamePath:", options.GamePath);
+			}
+		} catch (err) {
+			console.error("[LAUNCHER] Error selecting launcher:", err);
 		}
 	}
 
@@ -239,8 +323,8 @@
 	}
 
 	async function handleLaunch() {
-		if (!gamePath) {
-			notifications.add("Please select a game executable.", "error");
+		if (!options.LauncherPath) {
+			notifications.add("Please select a launcher executable.", "error");
 			return;
 		}
 
@@ -262,22 +346,40 @@
 
 	async function proceedToLaunch() {
 		showValidationModal = false;
+		console.log("\n============ PROCEED TO LAUNCH ============");
+
+		// DEBUG: Log state at execution time
+		console.log("[EXECUTE] Step 1 - Initial state");
+		console.log("[EXECUTE]   options.LauncherPath:", options.LauncherPath);
+		console.log("[EXECUTE]   options.GamePath:", options.GamePath);
+		console.log("[EXECUTE]   gamePath variable:", gamePath);
+		console.log("[EXECUTE]   Full options:", JSON.stringify(options));
+
 		const tool = protonVersions.find((p) => p.DisplayName === selectedProton);
 		let cleanName = selectedProton;
 		if (cleanName.startsWith("(Steam) ")) {
 			cleanName = cleanName.substring(8);
 		}
 
-		options.GamePath = gamePath;
+		// Config is ALWAYS saved to launcher path via SaveGameConfig backend logic
+		// GamePath remains the actual game executable to run
+		// LauncherPath is provided to SaveGameConfig for config storage
 		options.PrefixPath = prefixPath;
 		options.ProtonPattern = cleanName;
 		options.ProtonPath = tool ? tool.Path : "";
 
+		console.log("[EXECUTE] Step 2 - Final options object before RunGame:");
+		console.log(JSON.stringify(options, null, 2));
+		console.log("============ ABOUT TO CALL RunGame ============\n");
+
 		try {
+			console.log("[EXECUTE] Calling RunGame with LauncherPath:", options.LauncherPath);
+			console.log("[EXECUTE] Calling RunGame with GamePath:", options.GamePath);
+			console.log("[EXECUTE] Calling RunGame with full options:", JSON.stringify(options, null, 2));
 			await RunGame(options, showLogsWindow);
 			WindowHide();
 		} catch (err) {
-			console.error("Launch failed:", err);
+			console.error("[EXECUTE] Launch failed:", err);
 			notifications.add(`Launch failed: ${err}`, "error");
 		}
 	}
@@ -288,58 +390,19 @@
 		<h1 class="page-title">Launch Configuration</h1>
 	</div>
 
-	<div class="form-container">
-		<div class="form-group game-exe-group">
-			<label for="gameExe">Game Executable</label>
-			<div class="game-exe-wrapper">
-				<div class="game-icon-display">
-					{#if gameIcon && !iconLoadFailed}
-						<img
-							src={gameIcon}
-							alt="Game Icon"
-							class="game-icon"
-							on:load={() => {
-								console.log("Icon loaded successfully");
-								iconLoadFailed = false;
-							}}
-							on:error={(e) => {
-								console.error("Icon failed to load:", e);
-								iconLoadFailed = true;
-							}}
-						/>
-					{:else}
-						<div class="game-icon-placeholder">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								width="32"
-								height="32"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-								<line x1="8" y1="21" x2="16" y2="21"></line>
-								<line x1="12" y1="17" x2="12" y2="21"></line>
-							</svg>
-						</div>
-					{/if}
-				</div>
-				<div class="input-group game-exe-input-group">
-					<input
-						id="gameExe"
-						type="text"
-						bind:value={gamePath}
-						placeholder="Select .exe file..."
-						class="input"
-					/>
-					<button on:click={handleBrowseGame} class="btn">Browse</button>
-				</div>
-			</div>
-		</div>
+	<!-- Executable Selector Component -->
+	<ExecutableSelector
+		launcherPath={options.LauncherPath}
+		gamePath={options.GamePath}
+		bind:useGameExe={options.UseGameExe}
+		bind:launcherIcon
+		bind:gameIcon
+		onBrowseLauncher={handleBrowseLauncher}
+		onBrowseGame={handleBrowseGame}
+	/>
 
+	<!-- Main Form Container -->
+	<div class="form-container">
 		<div class="form-group">
 			<label for="winePrefix">WINEPREFIX</label>
 			<div class="input-group">
@@ -371,6 +434,17 @@
 		</div>
 
 		<ConfigForm bind:options />
+
+		{#if options.EnableLsfgVk && gamePath}
+			<div class="form-group">
+				<button class="btn primary" on:click={() => navigateToEditLsfg(gamePath)}>
+					Open Fullscreen LSFG-VK Editor
+				</button>
+				<p class="help-text" style="margin-top: 8px;">
+					For detailed LSFG-VK configuration and profile management
+				</p>
+			</div>
+		{/if}
 
 		<div class="form-group">
 			<SlideButton bind:checked={showLogsWindow} label="Show Logs" subtitle="Open logs in terminal" />
@@ -417,60 +491,15 @@
 	.run-container {
 		display: flex;
 		flex-direction: column;
-		height: 100%;
 		padding: 32px;
-		overflow: hidden;
 	}
 	.form-container {
 		width: 100%;
 		display: flex;
 		flex-direction: column;
 		gap: 24px;
-		overflow-y: auto;
-		padding-right: 8px;
 	}
-	.game-exe-group {
-		.game-exe-wrapper {
-			display: flex;
-			gap: 16px;
-			align-items: flex-end;
-		}
-		.game-exe-input-group {
-			flex: 1;
-			flex-direction: row;
-		}
-	}
-	.game-icon-display {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 80px;
-		height: 80px;
-		border-radius: 12px;
-		background: rgba(0, 0, 0, 0.3);
-		border: 1px solid var(--glass-border);
-		flex-shrink: 0;
-		.game-icon {
-			width: 100%;
-			height: 100%;
-			border-radius: 12px;
-			object-fit: contain;
-			padding: 4px;
-		}
-		.game-icon-placeholder {
-			width: 100%;
-			height: 100%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			color: var(--text-muted);
-			svg {
-				width: 40px;
-				height: 40px;
-				opacity: 0.5;
-			}
-		}
-	}
+
 	.form-group label {
 		display: block;
 		font-size: 0.875rem;
@@ -478,13 +507,17 @@
 		color: var(--text-muted);
 		margin-bottom: 8px;
 	}
+	.form-group {
+		.help-text {
+			font-size: 0.75rem;
+			color: var(--text-dim);
+			margin: 8px 0 0 0;
+		}
+	}
 	.input-group {
 		display: flex;
 		gap: 12px;
 		width: 100%;
-		.input {
-			flex: 1;
-		}
 		.dropdown-wrapper {
 			flex: 1;
 		}
@@ -580,19 +613,7 @@
 			stroke: #000000;
 		}
 	}
-	.input {
-		background: rgba(0, 0, 0, 0.25);
-		border: 1px solid var(--glass-border);
-		color: var(--text-main);
-		padding: 12px 16px;
-		border-radius: 10px;
-		outline: none;
-		transition: all 0.2s;
-		&:focus {
-			border-color: var(--text-muted);
-			background: rgba(0, 0, 0, 0.4);
-		}
-	}
+
 	.btn {
 		display: inline-flex;
 		align-items: center;

@@ -2,7 +2,10 @@ module go-proton
 
 go 1.25.6
 
-require github.com/getlantern/systray v1.2.2
+require (
+	github.com/getlantern/systray v1.2.2
+	github.com/pelletier/go-toml/v2 v2.1.1
+)
 
 require (
 	github.com/getlantern/context v0.0.0-20190109183933-c447772a6520 // indirect

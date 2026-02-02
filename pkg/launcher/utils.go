@@ -42,25 +42,12 @@ func GetUtilsStatus() UtilsStatus {
 }
 
 func IsLsfgInstalled() bool {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return false
-	}
-	lsfgDir := filepath.Join(home, "GoProton", "tools", "lsfg")
-	entries, err := os.ReadDir(lsfgDir)
-	if err != nil {
-		return false
-	}
-
-	for _, entry := range entries {
-		if strings.HasSuffix(entry.Name(), ".json") {
-			return true
-		}
-	}
-	return false
+	vulkanDir := "/usr/share/vulkan/implicit_layer.d"
+	_, err := os.Stat(filepath.Join(vulkanDir, "VkLayer_LSFGVK_frame_generation.json"))
+	return err == nil
 }
 
-func InstallLsfgWithLog(onProgress func(int, string)) error {
+func InstallLsfg(onProgress func(int, string)) error {
 	onProgress(0, "Fetching release info from GitHub...")
 	resp, err := http.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases", LsfgRepo))
 	if err != nil {
@@ -81,29 +68,20 @@ func InstallLsfgWithLog(onProgress func(int, string)) error {
 	var downloadURL, assetName string
 	found := false
 
-	patterns := []struct {
-		contains string
-		suffix   string
-	}{
-		{"x86_64", ".tar.zst"},
-		{"linux", ".tar.xz"},
-	}
-
-	for _, pattern := range patterns {
+	// Search through releases (newest first)
+	for _, release := range releases {
 		if found {
 			break
 		}
-		for _, release := range releases {
-			for _, asset := range release.Assets {
-				name := strings.ToLower(asset.Name)
-				if strings.Contains(name, pattern.contains) && strings.HasSuffix(name, pattern.suffix) {
-					downloadURL = asset.BrowserDownloadURL
-					assetName = asset.Name
-					found = true
-					break
-				}
-			}
-			if found {
+		// Look for compatible assets in decreasing preference order
+		for _, asset := range release.Assets {
+			name := strings.ToLower(asset.Name)
+			// Prefer x86_64 tar.zst, then linux tar.xz
+			if (strings.Contains(name, "x86_64") && strings.HasSuffix(name, ".tar.zst")) ||
+				(strings.Contains(name, "linux") && strings.HasSuffix(name, ".tar.xz")) {
+				downloadURL = asset.BrowserDownloadURL
+				assetName = asset.Name
+				found = true
 				break
 			}
 		}
@@ -129,12 +107,6 @@ func InstallLsfgWithLog(onProgress func(int, string)) error {
 	}
 	defer os.Remove(tmpFile)
 
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home dir: %w", err)
-	}
-	lsfgDir := filepath.Join(home, "GoProton", "tools", "lsfg")
-
 	onProgress(85, "Extracting files...")
 	extractTmp, err := os.MkdirTemp("", "lsfg-extract")
 	if err != nil {
@@ -155,116 +127,32 @@ func InstallLsfgWithLog(onProgress func(int, string)) error {
 		}
 	}
 
-	onProgress(90, "Installing files to ~/GoProton/tools/lsfg...")
-	if err := os.MkdirAll(lsfgDir, 0755); err != nil {
-		return fmt.Errorf("failed to create tools dir: %w", err)
-	}
+	onProgress(88, "Installing to system directories (requires sudo)...")
 
-	err = filepath.Walk(extractTmp, func(srcPath string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			return nil
-		}
-
-		name := info.Name()
-		var dstPath string
-
-		if strings.HasSuffix(name, ".so") || strings.HasSuffix(name, ".json") {
-			dstPath = filepath.Join(lsfgDir, name)
-		} else if strings.HasPrefix(name, "lsfg-vk-") && !strings.Contains(name, ".tar") {
-			dstPath = filepath.Join(lsfgDir, name)
-		} else {
-			return nil
-		}
-
-		return moveFile(srcPath, dstPath)
-	})
-	if err != nil {
-		return fmt.Errorf("failed to install files: %w", err)
-	}
-
-	onProgress(95, "Fixing manifest...")
-	if err := fixLsfgManifest(lsfgDir); err != nil {
-		return fmt.Errorf("failed to fix manifest: %w", err)
+	// Copy entire lsfg directory contents to /usr using pkexec (handles glob expansion)
+	shellCmd := fmt.Sprintf("cp -r %s/* /usr", extractTmp)
+	cpCmd := exec.Command("pkexec", "sh", "-c", shellCmd)
+	if output, err := cpCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to install lsfg: %v, output: %s", err, string(output))
 	}
 
 	onProgress(100, "Installation complete!")
 	return nil
 }
 
-func fixLsfgManifest(lsfgDir string) error {
-	entries, err := os.ReadDir(lsfgDir)
-	if err != nil {
-		return err
-	}
-
-	var originalJson string
-	for _, entry := range entries {
-		if strings.HasSuffix(entry.Name(), ".json") {
-			originalJson = filepath.Join(lsfgDir, entry.Name())
-			break
-		}
-	}
-
-	if originalJson == "" {
-		return fmt.Errorf("no JSON manifest found")
-	}
-
-	jsonBytes, err := os.ReadFile(originalJson)
-	if err != nil {
-		return err
-	}
-
-	var installedSoPath string
-	if _, err := os.Stat(filepath.Join(lsfgDir, "liblsfg-vk.so")); err == nil {
-		installedSoPath = filepath.Join(lsfgDir, "liblsfg-vk.so")
-	} else if _, err := os.Stat(filepath.Join(lsfgDir, "liblsfg-vk-layer.so")); err == nil {
-		installedSoPath = filepath.Join(lsfgDir, "liblsfg-vk-layer.so")
-	} else {
-		return fmt.Errorf("no .so library found")
-	}
-
-	content := string(jsonBytes)
-	lines := strings.Split(content, "\n")
-	for i, line := range lines {
-		if strings.Contains(line, "\"library_path\"") {
-			lines[i] = fmt.Sprintf("        \"library_path\": \"%s\",", installedSoPath)
-			break
-		}
-	}
-
-	return os.WriteFile(originalJson, []byte(strings.Join(lines, "\n")), 0644)
-}
-
-func moveFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
-		return err
-	}
-
-	out, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	if _, err = io.Copy(out, in); err != nil {
-		return err
-	}
-	return os.Chmod(dst, 0755)
-}
-
 func UninstallLsfg() error {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-	lsfgDir := filepath.Join(home, "GoProton", "tools", "lsfg")
-	return os.RemoveAll(lsfgDir)
+	vulkanDir := "/usr/share/vulkan/implicit_layer.d"
+	libDir := "/usr/lib"
+
+	// Remove manifest
+	manifest := filepath.Join(vulkanDir, "VkLayer_LSFGVK_frame_generation.json")
+	exec.Command("pkexec", "rm", "-f", manifest).Run()
+
+	// Remove library
+	lib := filepath.Join(libDir, "liblsfg-vk-layer.so")
+	exec.Command("pkexec", "rm", "-f", lib).Run()
+
+	return nil
 }
 
 type progressWriter struct {

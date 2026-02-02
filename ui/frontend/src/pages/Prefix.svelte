@@ -36,6 +36,8 @@
 	// Config
 	let prefixOptions: launcher.LaunchOptions = {
 		GamePath: "",
+		LauncherPath: "",
+		UseGameExe: false,
 		PrefixPath: "",
 		ProtonPattern: "",
 		ProtonPath: "",
@@ -50,6 +52,10 @@
 		LsfgMultiplier: "2",
 		LsfgPerfMode: false,
 		LsfgDllPath: "",
+		LsfgGpu: "",
+		LsfgFlowScale: "0.8",
+		LsfgPacing: "none",
+		LsfgAllowFp16: false,
 		EnableMemoryMin: false,
 		MemoryMinValue: "4G",
 	};

@@ -6,12 +6,20 @@ export function CleanupProcesses() {
   return window['go']['main']['App']['CleanupProcesses']();
 }
 
+export function CloseWindow() {
+  return window['go']['main']['App']['CloseWindow']();
+}
+
 export function CreatePrefix(arg1) {
   return window['go']['main']['App']['CreatePrefix'](arg1);
 }
 
 export function DetectLosslessDll() {
   return window['go']['main']['App']['DetectLosslessDll']();
+}
+
+export function EditLsfgConfigForGame(arg1) {
+  return window['go']['main']['App']['EditLsfgConfigForGame'](arg1);
 }
 
 export function GetConfig(arg1) {
@@ -26,6 +34,14 @@ export function GetInitialGamePath() {
   return window['go']['main']['App']['GetInitialGamePath']();
 }
 
+export function GetListGpus() {
+  return window['go']['main']['App']['GetListGpus']();
+}
+
+export function GetLsfgProfileForGame(arg1) {
+  return window['go']['main']['App']['GetLsfgProfileForGame'](arg1);
+}
+
 export function GetPrefixBaseDir() {
   return window['go']['main']['App']['GetPrefixBaseDir']();
 }
@@ -36,6 +52,10 @@ export function GetProtonReleases(arg1) {
 
 export function GetProtonVariants() {
   return window['go']['main']['App']['GetProtonVariants']();
+}
+
+export function GetShouldEditLsfg() {
+  return window['go']['main']['App']['GetShouldEditLsfg']();
 }
 
 export function GetSystemToolsStatus() {
@@ -78,12 +98,20 @@ export function PickFolder() {
   return window['go']['main']['App']['PickFolder']();
 }
 
+export function RemoveProfile(arg1) {
+  return window['go']['main']['App']['RemoveProfile'](arg1);
+}
+
 export function RunGame(arg1, arg2) {
   return window['go']['main']['App']['RunGame'](arg1, arg2);
 }
 
 export function RunPrefixTool(arg1, arg2, arg3) {
   return window['go']['main']['App']['RunPrefixTool'](arg1, arg2, arg3);
+}
+
+export function SaveLsfgProfile(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
+  return window['go']['main']['App']['SaveLsfgProfile'](arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
 }
 
 export function SavePrefixConfig(arg1, arg2) {

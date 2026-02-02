@@ -10,9 +10,12 @@ build: build-instance build-ui build-wrapper
 build-instance:
 	go build -o $(BIN_DIR)/$(INSTANCE_BIN) cmd/instance/main.go
 
-build-ui:
+build-ui: generate-bindings
 	cd $(PROJECT_DIR) && $(WAILS_BIN) build
 	mv $(PROJECT_DIR)/build/bin/$(UI_BIN) $(BIN_DIR)/$(UI_BIN)
+
+generate-bindings:
+	cd $(PROJECT_DIR) && $(WAILS_BIN) generate bindings
 
 build-wrapper:
 	go build -o $(BIN_DIR)/$(BINARY_NAME) cmd/goproton/main.go

@@ -1,9 +1,9 @@
 <script lang="ts">
 	import SlideButton from "./SlideButton.svelte";
-	import Dropdown from "./Dropdown.svelte";
 	import Modal from "./Modal.svelte";
 	import RangeSlider from "./RangeSlider.svelte";
-	import { PickFileCustom, GetTotalRam, DetectLosslessDll } from "../../wailsjs/go/main/App";
+	import LsfgConfigForm from "./LsfgConfigForm.svelte";
+	import { PickFileCustom, GetTotalRam, DetectLosslessDll, GetListGpus } from "../../wailsjs/go/main/App";
 	import type { launcher } from "../../wailsjs/go/models";
 	import { onMount } from "svelte";
 
@@ -16,6 +16,7 @@
 
 	let memorySliderValue = 4;
 	let systemRamTotal = 16;
+	let gpuList: string[] = ["Auto (Detect)"];
 
 	onMount(async () => {
 		try {
@@ -32,6 +33,16 @@
 						memorySliderValue = val;
 					}
 				}
+			}
+
+			// Load available GPUs
+			try {
+				const gpus = await GetListGpus();
+				if (gpus && gpus.length > 0) {
+					gpuList = gpus;
+				}
+			} catch (e) {
+				console.error("Failed to detect GPUs:", e);
 			}
 
 			// Auto-detect DLL on mount
@@ -54,6 +65,15 @@
 			console.error(err);
 		}
 	}
+
+	/* Unused - onLsfgModalOpen was intended for auto-detection but not currently triggered
+	async function onLsfgModalOpen() {
+		if (!options.LsfgDllPath) {
+			const dll = await DetectLosslessDll();
+			if (dll) options.LsfgDllPath = dll;
+		}
+	}
+	*/
 </script>
 
 <div class="config-form">
@@ -95,46 +115,13 @@
 	</div>
 
 	<!-- LSFG Settings Modal -->
-	<Modal show={showLsfgModal} title="LSFG-VK Configuration" onClose={() => (showLsfgModal = false)}>
-		<div class="modal-form">
-			<div class="form-group">
-				<label for="lsfgDll">
-					Lossless.dll Path (from Steam)
-					{#if options.LsfgDllPath}
-						<span class="status-badge success">Detected</span>
-					{:else}
-						<span class="status-badge error">Not Found</span>
-					{/if}
-				</label>
-				<div class="input-group">
-					<input
-						id="lsfgDll"
-						type="text"
-						class="input sm"
-						bind:value={options.LsfgDllPath}
-						placeholder="Path to Lossless.dll..."
-					/>
-					<button class="btn sm" on:click={handleBrowseDll}>Browse</button>
-				</div>
-			</div>
-			<div class="form-group">
-				<label for="fpsMultiplier">FPS Multiplier</label>
-				<div id="fpsMultiplier">
-					<Dropdown
-						options={["2", "3", "4"]}
-						bind:value={options.LsfgMultiplier}
-						onChange={(val) => (options.LsfgMultiplier = val)}
-					/>
-				</div>
-			</div>
-			<div class="form-group">
-				<SlideButton
-					bind:checked={options.LsfgPerfMode}
-					label="Performance Mode"
-					subtitle="Faster frame generation, slight quality loss"
-				/>
-			</div>
-		</div>
+	<Modal
+		show={showLsfgModal}
+		title="LSFG-VK Configuration"
+		fullscreen={true}
+		onClose={() => (showLsfgModal = false)}
+	>
+		<LsfgConfigForm {options} {gpuList} onDllBrowse={handleBrowseDll} />
 	</Modal>
 
 	<!-- Gamescope Settings Modal -->
@@ -220,39 +207,6 @@
 	.form-group .input {
 		width: 100%;
 		display: block;
-	}
-	.input-group {
-		display: flex;
-		gap: 12px;
-		width: 100%;
-		.input {
-			flex: 1;
-		}
-	}
-	.input.sm {
-		padding: 6px 10px;
-		font-size: 0.875rem;
-	}
-	.btn.sm {
-		padding: 6px 12px;
-		font-size: 0.8rem;
-	}
-
-	.status-badge {
-		font-size: 0.65rem;
-		padding: 2px 6px;
-		border-radius: 4px;
-		margin-left: 8px;
-		text-transform: uppercase;
-		font-weight: bold;
-		&.success {
-			background: rgba(16, 185, 129, 0.2);
-			color: #10b981;
-		}
-		&.error {
-			background: rgba(239, 68, 68, 0.2);
-			color: #ef4444;
-		}
 	}
 	.note {
 		font-size: 0.75rem;

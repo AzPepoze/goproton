@@ -12,6 +12,41 @@ import (
 	"time"
 )
 
+var debugLogFile *os.File
+
+func InitDebugLog() {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+
+	logPath := filepath.Join(homeDir, "GoProton", "debug.log")
+	os.MkdirAll(filepath.Dir(logPath), 0755)
+
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err == nil {
+		debugLogFile = f
+		DebugLog("=== DEBUG LOG STARTED ===")
+	}
+}
+
+func DebugLog(msg string) {
+	if debugLogFile == nil {
+		InitDebugLog()
+	}
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	line := fmt.Sprintf("[%s] %s\n", timestamp, msg)
+
+	// Write to console
+	fmt.Print(line)
+
+	// Write to file
+	if debugLogFile != nil {
+		debugLogFile.WriteString(line)
+		debugLogFile.Sync()
+	}
+}
+
 func isCommandAvailable(name string) bool {
 	_, err := exec.LookPath(name)
 	return err == nil
@@ -22,38 +57,11 @@ func buildLsfgEnv(opts LaunchOptions) []string {
 		return nil
 	}
 
-	home, _ := os.UserHomeDir()
-	lsfgDir := filepath.Join(home, "GoProton", "tools", "lsfg")
-	lsfgLayers := "VK_LAYER_LSFGVK_frame_generation:VK_LAYER_LS_frame_generation"
+	DebugLog("buildLsfgEnv() called")
 
-	env := []string{
-		"ENABLE_LSFG=1",
-		"DISABLE_LSFGVK=0",
-		"LSFG_LEGACY=1",
-		"VK_LOADER_LAYERS_ENABLE=" + lsfgLayers,
-		"VK_INSTANCE_LAYERS=" + lsfgLayers,
-		"LSFG_HUD=1",
-		"LSFG_LOG_LEVEL=debug",
-		"VK_ADD_LAYER_PATH=" + lsfgDir,
-		"PRESSURE_VESSEL_FILESYSTEMS_RW=" + lsfgDir,
-	}
-
-	if opts.LsfgMultiplier != "" {
-		env = append(env, "LSFG_MULTIPLIER="+opts.LsfgMultiplier)
-	}
-	if opts.LsfgPerfMode {
-		env = append(env, "LSFG_PERFORMANCE_MODE=1")
-	}
-
-	dllPath := ExpandPath(opts.LsfgDllPath)
-	if decoded, err := filepath.EvalSymlinks(dllPath); err == nil {
-		dllPath = decoded
-	}
-	if dllPath != "" {
-		env = append(env, "LSFG_DLL_PATH="+dllPath)
-	}
-
-	return env
+	// lsfg-vk reads from ~/.config/lsfg-vk/conf.toml by default
+	// We don't pass LSFG_CONFIG env var - just enable LSFG
+	return []string{}
 }
 
 func buildBaseEnv(opts LaunchOptions) []string {
@@ -70,6 +78,13 @@ func buildBaseEnv(opts LaunchOptions) []string {
 }
 
 func BuildCommand(opts LaunchOptions) ([]string, []string) {
+	// DEBUG: Log received options
+	DebugLog("BuildCommand() called")
+	DebugLog("  LauncherPath: " + opts.LauncherPath)
+	DebugLog("  GamePath: " + opts.GamePath)
+	DebugLog("  UseGameExe: " + fmt.Sprintf("%v", opts.UseGameExe))
+	DebugLog("  EnableLsfgVk: " + fmt.Sprintf("%v", opts.EnableLsfgVk))
+
 	var cmdArgs []string
 	env := append(os.Environ(), buildBaseEnv(opts)...)
 
@@ -105,7 +120,21 @@ func BuildCommand(opts LaunchOptions) ([]string, []string) {
 		env = append(env, lsfgEnv...)
 	}
 
-	cmdArgs = append(cmdArgs, "umu-run", opts.GamePath)
+	cmdArgs = append(cmdArgs, "umu-run")
+
+	// Always use launcher path for execution
+	// GamePath is only used for LSFG-VK profile matching
+	DebugLog("About to resolve exePath:")
+	DebugLog("  opts.LauncherPath = " + opts.LauncherPath)
+	DebugLog("  opts.GamePath = " + opts.GamePath)
+
+	exePath := opts.LauncherPath
+	if exePath == "" {
+		DebugLog("LauncherPath is empty, falling back to GamePath")
+		exePath = opts.GamePath
+	}
+	DebugLog("Final exePath: " + exePath)
+	cmdArgs = append(cmdArgs, exePath)
 
 	if opts.CustomArgs != "" {
 		args := strings.Fields(opts.CustomArgs)

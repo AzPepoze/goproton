@@ -4,12 +4,20 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
 func loadConfig(path string, v interface{}) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
+	}
+
+	// Detect format based on file extension
+	if strings.HasSuffix(path, ".toml") {
+		return toml.Unmarshal(data, v)
 	}
 	return json.Unmarshal(data, v)
 }
@@ -18,7 +26,17 @@ func saveConfig(path string, v interface{}) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
-	data, err := json.MarshalIndent(v, "", "  ")
+
+	var data []byte
+	var err error
+
+	// Detect format based on file extension
+	if strings.HasSuffix(path, ".toml") {
+		data, err = toml.Marshal(v)
+	} else {
+		data, err = json.MarshalIndent(v, "", "  ")
+	}
+
 	if err != nil {
 		return err
 	}
@@ -47,15 +65,47 @@ func LoadPrefixConfig(prefixName string) (*LaunchOptions, error) {
 }
 
 func SaveGameConfig(opts LaunchOptions) error {
-	path := GetConfigPath(opts.GamePath)
+	// Use LauncherPath for config storage if available, otherwise fall back to GamePath
+	configExePath := opts.GamePath
+	if opts.LauncherPath != "" {
+		configExePath = opts.LauncherPath
+	}
+	path := GetGameConfigFile(configExePath)
 	return saveConfig(path, opts)
 }
 
 func LoadGameConfig(exePath string) (*LaunchOptions, error) {
-	path := GetConfigPath(exePath)
+	path := GetGameConfigFile(exePath)
 	var opts LaunchOptions
 	if err := loadConfig(path, &opts); err != nil {
 		return nil, err
 	}
 	return &opts, nil
+}
+
+// SaveLsfgProfile saves an LSFG profile for a game
+func SaveLsfgProfile(gameName string, profile LsfgProfile) error {
+	// Use the game path to compute the directory with hash
+	configPath := GetConfigPath(profile.GamePath)
+
+	if err := os.MkdirAll(configPath, 0755); err != nil {
+		return err
+	}
+
+	// Save as lsfg_vk.toml in the executables directory structure
+	profilePath := filepath.Join(configPath, "lsfg_vk.toml")
+	return saveConfig(profilePath, profile)
+}
+
+// LoadLsfgProfile loads an LSFG profile for a game
+func LoadLsfgProfile(gamePath string) (*LsfgProfile, error) {
+	// Use the game path to compute the directory with hash
+	configPath := GetConfigPath(gamePath)
+
+	profilePath := filepath.Join(configPath, "lsfg_vk.toml")
+	var profile LsfgProfile
+	if err := loadConfig(profilePath, &profile); err != nil {
+		return nil, err
+	}
+	return &profile, nil
 }

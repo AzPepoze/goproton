@@ -5,10 +5,48 @@
 	import Versions from "./pages/Versions.svelte";
 	import Prefix from "./pages/Prefix.svelte";
 	import Utils from "./pages/Utils.svelte";
+	import EditLsfg from "./pages/EditLsfg.svelte";
 	import NotificationHost from "./components/NotificationHost.svelte";
 	import { fade, fly } from "svelte/transition";
+	import { GetInitialGamePath, GetShouldEditLsfg } from "../wailsjs/go/main/App";
+	import { onMount } from "svelte";
+	import { navigationCommand } from "./stores/navigationStore";
 
 	let activePage = "home";
+	let editLsfgGamePath = "";
+
+	onMount(async () => {
+		try {
+			const shouldEditLsfg = await GetShouldEditLsfg();
+			const gamePath = await GetInitialGamePath();
+
+			console.log("LSFG Debug - shouldEditLsfg:", shouldEditLsfg, "gamePath:", gamePath);
+
+			if (shouldEditLsfg && gamePath) {
+				editLsfgGamePath = gamePath;
+				activePage = "editlsfg";
+				console.log("EditLsfg page triggered for:", gamePath);
+			}
+		} catch (e) {
+			console.error("Error in App onMount:", e);
+		}
+	});
+
+	// Subscribe to navigation commands
+	navigationCommand.subscribe((cmd) => {
+		if (cmd) {
+			if (cmd.page === "editlsfg" && cmd.gamePath) {
+				editLsfgGamePath = cmd.gamePath;
+				activePage = "editlsfg";
+				console.log("Navigated to EditLsfg for game:", cmd.gamePath);
+			} else if (cmd.page) {
+				activePage = cmd.page;
+				console.log("Navigated to page:", cmd.page);
+			}
+			// Clear the command after handling
+			navigationCommand.set(null);
+		}
+	});
 
 	function handleNavigate(page: string) {
 		activePage = page;
@@ -16,9 +54,11 @@
 </script>
 
 <main>
-	<Sidebar {activePage} onNavigate={handleNavigate} />
+	{#if activePage !== "editlsfg"}
+		<Sidebar {activePage} onNavigate={handleNavigate} />
+	{/if}
 
-	<div class="content">
+	<div class="content" class:fullscreen={activePage === "editlsfg"}>
 		{#key activePage}
 			<div class="page-wrapper" in:fly={{ y: 10, duration: 300, delay: 150 }} out:fade={{ duration: 150 }}>
 				{#if activePage === "home"}
@@ -31,6 +71,8 @@
 					<Prefix />
 				{:else if activePage === "utils"}
 					<Utils />
+				{:else if activePage === "editlsfg"}
+					<EditLsfg gamePath={editLsfgGamePath} />
 				{:else}
 					<div class="placeholder">
 						Page "{activePage}" not implemented yet.
@@ -60,6 +102,10 @@
 		position: relative; /* Important for absolute positioning of page wrapper */
 		/* Subtle neutral gradient for depth */
 		background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+
+		&.fullscreen {
+			width: 100vw;
+		}
 	}
 
 	/* Wrapper to handle transition positioning */

@@ -1,17 +1,23 @@
 <script lang="ts">
 	export let value: number = 4;
+	export let min: number = 0.1;
 	export let max: number = 16;
+	export let inputMin: number | null = null; // Optional separate min for input
+	export let inputMax: number | null = null; // Optional separate max for input
 	export let snapValues: number[] = [4, 8, 12, 16, 24, 32, 64];
+	export let unit: string = "GB"; // "GB", "x", or any custom unit
+	export let label: string = ""; // Custom label, if empty uses "value unit / max unit"
+	export let showWarning: boolean = true; // Only show warning for RAM-like sliders
 	export let onChange: (value: number) => void = () => {};
 
-	const warningPercentage = 0.75; // 75% of max RAM is warning zone
+	const warningPercentage = 0.75; // 75% of max is warning zone
 
 	let isDragging = false;
 	let trackElement: HTMLElement;
 	let percentage = 0;
 
 	$: {
-		percentage = (value / max) * 100;
+		percentage = ((value - min) / (max - min)) * 100;
 	}
 
 	function handleStart(e: MouseEvent | TouchEvent) {
@@ -42,46 +48,46 @@
 		let x = clientX - rect.left;
 		x = Math.max(0, Math.min(x, rect.width));
 
-		let rawValue = (x / rect.width) * max;
+		let rawValue = min + (x / rect.width) * (max - min);
 
 		let closest = rawValue;
 		closest = Math.round(rawValue * 10) / 10;
 
 		// Snap to integers and specific values if very close
 		for (const snap of snapValues) {
-			if (snap > max) continue;
+			if (snap > max || snap < min) continue;
 			const diff = Math.abs(rawValue - snap);
 			if (diff < 0.5) {
 				closest = snap;
 			}
 		}
 
-		if (closest < 0.1) closest = 0.1;
+		if (closest < min) closest = min;
 
 		value = closest;
 		onChange(value);
 	}
 
-	$: isWarning = value > max * warningPercentage;
+	$: isWarning = showWarning && value > max * warningPercentage;
+	$: displayLabel = label || `${value} ${unit} / ${max} ${unit}`;
 </script>
 
 <div class="range-container">
 	<div class="range-header">
 		<div class="range-label">
-			<span>{value} GB</span>
-			<span class="sub-label">/ {max} GB Total</span>
+			<span>{displayLabel}</span>
 		</div>
 		<div class="input-wrapper">
 			<input
 				type="number"
 				step="0.1"
-				min="0.1"
-				{max}
+				min={inputMin ?? min}
+				max={inputMax ?? max}
 				bind:value
 				on:input={() => onChange(value)}
 				class="manual-input"
 			/>
-			<span class="unit">GB</span>
+			<span class="unit">{unit}</span>
 		</div>
 	</div>
 
@@ -93,10 +99,12 @@
 	>
 		<div class="track">
 			<!-- Warning Zone Background -->
-			<div
-				class="warning-zone"
-				style="width: {(1 - warningPercentage) * 100}%; left: {warningPercentage * 100}%"
-			></div>
+			{#if showWarning}
+				<div
+					class="warning-zone"
+					style="width: {(1 - warningPercentage) * 100}%; left: {warningPercentage * 100}%"
+				></div>
+			{/if}
 
 			<!-- Fill -->
 			<div class="fill {isWarning ? 'warning' : ''}" style="width: {percentage}%"></div>
@@ -106,15 +114,15 @@
 
 			<!-- Snap Points -->
 			{#each snapValues as point}
-				{#if point <= max}
-					<div class="snap-point" style="left: {(point / max) * 100}%"></div>
+				{#if point <= max && point >= min}
+					<div class="snap-point" style="left: {((point - min) / (max - min)) * 100}%"></div>
 				{/if}
 			{/each}
 		</div>
 	</div>
 
 	{#if isWarning}
-		<div class="warning-text">⚠️ High memory usage may affect system stability</div>
+		<div class="warning-text">⚠️ High value may affect system stability</div>
 	{/if}
 </div>
 
@@ -138,12 +146,6 @@
 		font-size: 1.25rem;
 		font-weight: bold;
 		color: var(--text-main);
-
-		.sub-label {
-			font-size: 0.75rem;
-			font-weight: normal;
-			color: var(--text-dim);
-		}
 	}
 
 	.input-wrapper {

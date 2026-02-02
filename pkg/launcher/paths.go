@@ -26,8 +26,23 @@ func GetPrefixBaseDir() string {
 func GetConfigPath(exePath string) string {
 	h := sha1.New()
 	h.Write([]byte(exePath))
-	filename := hex.EncodeToString(h.Sum(nil)) + ".json"
-	return filepath.Join(GetConfigDir(), filename)
+	hash := hex.EncodeToString(h.Sum(nil))[:8]
+	// Remove .exe extension
+	baseName := filepath.Base(exePath)
+	baseName = filepath.Base(baseName[:len(baseName)-len(filepath.Ext(baseName))])
+
+	folderName := baseName + "-" + hash
+	return filepath.Join(GetConfigDir(), folderName)
+}
+
+// GetGameConfigFile returns the path to the game's config.json file
+func GetGameConfigFile(exePath string) string {
+	return filepath.Join(GetConfigPath(exePath), "config.json")
+}
+
+// GetGameLsfgConfigPath returns the path to the game's LSFG lsfg_vk.toml file
+func GetGameLsfgConfigPath(exePath string) string {
+	return filepath.Join(GetConfigPath(exePath), "lsfg_vk.toml")
 }
 
 func GetPrefixConfigPath(prefixName string) string {

@@ -1,0 +1,386 @@
+<script lang="ts">
+	import { GetExeIcon } from "../../wailsjs/go/main/App";
+	import SlideButton from "./SlideButton.svelte";
+
+	export let launcherPath = "";
+	export let gamePath = "";
+	export let useGameExe = false;
+	export let launcherIcon = "";
+	export let gameIcon = "";
+	export let onBrowseLauncher: () => Promise<void>;
+	export let onBrowseGame: () => Promise<void>;
+
+	let launcherIconFailed = false;
+	let gameIconFailed = false;
+	let prevLauncherPath = "";
+	let prevGamePath = "";
+
+	// Internal state for inputs - keep in sync with props
+	let internalLauncherPath = launcherPath;
+	let internalGamePath = gamePath;
+
+	// When props change, update internal state
+	$: if (launcherPath !== internalLauncherPath) {
+		console.log("ExecutableSelector: launcherPath prop changed to:", launcherPath);
+		internalLauncherPath = launcherPath;
+	}
+
+	$: if (gamePath !== internalGamePath) {
+		console.log("ExecutableSelector: gamePath prop changed to:", gamePath);
+		internalGamePath = gamePath;
+	}
+
+	// Load launcher icon when launcher path changes
+	$: if (internalLauncherPath && internalLauncherPath !== prevLauncherPath) {
+		prevLauncherPath = internalLauncherPath;
+		launcherIconFailed = false;
+		(async () => {
+			try {
+				const icon = await GetExeIcon(internalLauncherPath);
+				if (icon) {
+					launcherIcon = icon;
+					launcherIconFailed = false;
+				} else {
+					launcherIconFailed = true;
+				}
+			} catch (err) {
+				console.error("Failed to get launcher icon:", err);
+				launcherIconFailed = true;
+			}
+		})();
+	}
+
+	// Reload game icon when game path changes
+	$: if (internalGamePath && internalGamePath !== prevGamePath) {
+		prevGamePath = internalGamePath;
+		gameIconFailed = false;
+		if (useGameExe) {
+			(async () => {
+				try {
+					const icon = await GetExeIcon(internalGamePath);
+					if (icon) {
+						gameIcon = icon;
+						gameIconFailed = false;
+					} else {
+						gameIconFailed = true;
+					}
+				} catch (err) {
+					console.error("Failed to get game icon:", err);
+					gameIconFailed = true;
+				}
+			})();
+		}
+	}
+
+	async function handleBrowseLauncherClick() {
+		await onBrowseLauncher();
+		// Give parent time to update binding, then force update
+		await new Promise((r) => setTimeout(r, 0));
+	}
+
+	async function handleBrowseGameClick() {
+		await onBrowseGame();
+		// Give parent time to update binding, then force update
+		await new Promise((r) => setTimeout(r, 0));
+	}
+</script>
+
+<div class="exe-selector">
+	<!-- Launcher Executable Section -->
+	<div class="launcher-exe-section">
+		<label for="launcherExe">
+			Launcher Executable <span class="required-tag">Required</span>
+		</label>
+
+		<div class="launcher-exe-wrapper">
+			<div class="exe-icon-display launcher-icon">
+				{#if launcherIcon && !launcherIconFailed}
+					<img
+						src={launcherIcon}
+						alt="Launcher Icon"
+						class="exe-icon"
+						on:load={() => {
+							launcherIconFailed = false;
+						}}
+						on:error={() => {
+							launcherIconFailed = true;
+						}}
+					/>
+				{:else}
+					<div class="exe-icon-placeholder">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="32"
+							height="32"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+							<line x1="8" y1="21" x2="16" y2="21"></line>
+							<line x1="12" y1="17" x2="12" y2="21"></line>
+						</svg>
+					</div>
+				{/if}
+			</div>
+
+			<div class="input-group launcher-input-group">
+				<input
+					id="launcherExe"
+					type="text"
+					bind:value={internalLauncherPath}
+					placeholder="Path to launcher.exe (main executable to run)..."
+					class="input"
+				/>
+				<button on:click={handleBrowseLauncherClick} class="btn">Browse</button>
+			</div>
+		</div>
+
+		<p class="exe-note launcher-note">Main executable to launch. Required for game execution.</p>
+	</div>
+
+	<!-- Game Executable Toggle -->
+	<SlideButton
+		bind:checked={useGameExe}
+		label="Use Game Exe (for LSFG-VK)"
+		subtitle="Configure different game exe for LSFG-VK profile"
+	/>
+
+	<!-- Game Executable Section (Conditional) -->
+	{#if useGameExe}
+		<div class="game-exe-section">
+			<label for="gameExe">
+				Game Executable <span class="optional-tag">For LSFG-VK</span>
+			</label>
+
+			<div class="game-exe-wrapper">
+				<div class="exe-icon-display game-icon">
+					{#if gameIcon && !gameIconFailed}
+						<img
+							src={gameIcon}
+							alt="Game Icon"
+							class="exe-icon"
+							on:load={() => {
+								gameIconFailed = false;
+							}}
+							on:error={() => {
+								gameIconFailed = true;
+							}}
+						/>
+					{:else}
+						<div class="exe-icon-placeholder">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="32"
+								height="32"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+								<line x1="8" y1="21" x2="16" y2="21"></line>
+								<line x1="12" y1="17" x2="12" y2="21"></line>
+							</svg>
+						</div>
+					{/if}
+				</div>
+
+				<div class="input-group game-input-group">
+					<input
+						id="gameExe"
+						type="text"
+						bind:value={internalGamePath}
+						placeholder="Select game .exe file..."
+						class="input"
+					/>
+					<button on:click={handleBrowseGameClick} class="btn">Browse</button>
+				</div>
+			</div>
+
+			<p class="exe-note game-note">Used for LSFG-VK profile matching and configuration.</p>
+		</div>
+	{/if}
+</div>
+
+<style lang="scss">
+	.exe-selector {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-bottom: 16px;
+	}
+
+	.launcher-exe-section,
+	.game-exe-section {
+		padding: 16px;
+		background: rgba(255, 255, 255, 0.04);
+		border-radius: 10px;
+		border: 1px solid var(--glass-border);
+	}
+
+	.launcher-exe-section {
+		padding: 20px 16px;
+		background: rgba(96, 165, 250, 0.15);
+		border-color: rgba(96, 165, 250, 0.3);
+	}
+
+	.game-exe-section {
+		background: rgba(192, 132, 252, 0.15);
+		border-color: rgba(192, 132, 252, 0.3);
+	}
+
+	label {
+		display: flex;
+		align-items: center;
+		font-size: 0.875rem;
+		font-weight: 700;
+		color: var(--text-muted);
+		margin-bottom: 12px;
+	}
+
+	.launcher-exe-section label {
+		color: #60a5fa;
+	}
+
+	.game-exe-section label {
+		color: #c084fc;
+	}
+
+	.required-tag {
+		font-size: 0.75rem;
+		padding: 4px 10px;
+		border-radius: 4px;
+		margin-left: 8px;
+		text-transform: uppercase;
+		font-weight: bold;
+		background: rgba(96, 165, 250, 0.25);
+		color: #60a5fa;
+	}
+
+	.optional-tag {
+		font-size: 0.75rem;
+		padding: 4px 10px;
+		border-radius: 4px;
+		margin-left: 8px;
+		text-transform: uppercase;
+		font-weight: bold;
+		background: rgba(192, 132, 252, 0.25);
+		color: #c084fc;
+	}
+
+	.launcher-exe-wrapper,
+	.game-exe-wrapper {
+		display: flex;
+		gap: 12px;
+		align-items: flex-start;
+	}
+
+	.exe-icon-display {
+		flex-shrink: 0;
+		width: 56px;
+		height: 56px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 8px;
+		background: rgba(0, 0, 0, 0.2);
+		border: 1px solid var(--glass-border);
+		overflow: hidden;
+
+		&.launcher-icon {
+			background: rgba(59, 130, 246, 0.12);
+			border-color: rgba(59, 130, 246, 0.3);
+		}
+
+		&.game-icon {
+			background: rgba(168, 85, 247, 0.12);
+			border-color: rgba(168, 85, 247, 0.3);
+		}
+	}
+
+	.exe-icon {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.exe-icon-placeholder {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: var(--text-dim);
+		width: 100%;
+		height: 100%;
+	}
+
+	.launcher-input-group,
+	.game-input-group {
+		flex: 1;
+		display: flex;
+		gap: 10px;
+	}
+
+	.input {
+		flex: 1;
+		padding: 10px 12px;
+		background: rgba(0, 0, 0, 0.2);
+		border: 1px solid var(--glass-border);
+		border-radius: 6px;
+		color: var(--text-main);
+		font-size: 0.875rem;
+		font-family: inherit;
+
+		&::placeholder {
+			color: var(--text-dim);
+		}
+
+		&:focus {
+			outline: none;
+			border-color: var(--accent-primary);
+			background: rgba(0, 0, 0, 0.3);
+		}
+	}
+
+	.btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 8px 16px;
+		border-radius: 6px;
+		font-weight: 600;
+		font-size: 0.8rem;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		border: 1px solid var(--glass-border);
+		background: rgba(255, 255, 255, 0.05);
+		color: var(--text-main);
+		white-space: nowrap;
+
+		&:hover {
+			background: rgba(255, 255, 255, 0.1);
+			border-color: var(--glass-border-bright);
+		}
+	}
+
+	.exe-note {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--text-dim);
+		margin-top: 10px;
+		font-style: italic;
+	}
+
+	.launcher-note {
+		color: rgba(96, 165, 250, 0.9);
+	}
+
+	.game-note {
+		color: rgba(192, 132, 252, 0.9);
+	}
+</style>
