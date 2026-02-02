@@ -1,0 +1,11 @@
+import sveltePreprocess from "svelte-preprocess/dist/index.js";
+
+export default {
+	// Consult https://github.com/sveltejs/svelte-preprocess
+	// for more information about preprocessors
+	preprocess: sveltePreprocess({
+		scss: {
+			api: "modern-compiler",
+		},
+	}),
+};

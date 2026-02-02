@@ -1,5 +1,5 @@
 # Binaries
-/bin
+/bin/
 
 # Go
 vendor/
@@ -7,16 +7,17 @@ vendor/
 *.exe~
 *.dll
 *.so
-*.dylib1
+*.dylib
 *.test
 *.out
 
-# Wails / Build
-ui/build/bin/
-ui/frontend/dist/
-ui/frontend/node_modules/
-ui/frontend/.svelte-kit/
-ui/frontend/.vercel/
+# Node / Frontend
+node_modules/
+dist/
+dist-renderer/
+dist-electron/
+.pnpm-debug.log*
+.svelte-kit/
 
 # IDEs
 .vscode/
@@ -30,3 +31,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Legacy / Cleanup
+ui/
+energy/
+EnergyFrameworkDownloadCache/

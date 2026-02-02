@@ -1,0 +1,68 @@
+{
+	"name": "goproton",
+	"version": "1.0.0",
+	"type": "module",
+	"main": "build/electron/main.js",
+	"scripts": {
+		"dev": "npm run build && vite",
+		"start": "npm run build && dist/linux-unpacked/goproton-ui",
+		"build": "npm run build:instance && npm run build:launcher && vite build && electron-builder",
+		"build:instance": "go build -o bin/goproton-instance ./src/instance",
+		"build:launcher": "go build -o bin/goproton ./src/launcher",
+		"build:electron": "vite build && electron-builder",
+		"check": "svelte-check --tsconfig ./tsconfig.json"
+	},
+	"devDependencies": {
+		"@sveltejs/vite-plugin-svelte": "2.5.3",
+		"@tsconfig/svelte": "5.0.6",
+		"concurrently": "9.2.1",
+		"cross-env": "10.1.0",
+		"electron": "40.1.0",
+		"electron-builder": "26.7.0",
+		"sass": "1.84.0",
+		"svelte": "3.59.2",
+		"svelte-check": "3.8.6",
+		"svelte-preprocess": "5.1.4",
+		"tslib": "2.6.0",
+		"typescript": "5.9.3",
+		"vite": "4.5.3",
+		"vite-plugin-electron": "0.29.0",
+		"vite-plugin-electron-renderer": "0.14.6",
+		"wait-on": "9.0.3"
+	},
+	"build": {
+		"appId": "com.goproton.ui",
+		"productName": "GoProton",
+		"directories": {
+			"output": "dist"
+		},
+		"files": [
+			"build/frontend/**/*",
+			"build/electron/**/*"
+		],
+		"linux": {
+			"target": "dir",
+			"executableName": "goproton-ui"
+		},
+		"extraResources": [
+			{
+				"from": "bin/goproton-instance",
+				"to": "goproton-instance"
+			},
+			{
+				"from": "bin/goproton",
+				"to": "goproton"
+			}
+		]
+	},
+	"author": "AzPepoze",
+	"description": "Proton Version Manager & Launcher",
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"electron",
+			"esbuild",
+			"@parcel/watcher",
+			"svelte-preprocess"
+		]
+	}
+}
