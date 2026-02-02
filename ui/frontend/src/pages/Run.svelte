@@ -10,7 +10,7 @@
 		GetPrefixBaseDir,
 		GetSystemToolsStatus,
 		LoadPrefixConfig,
-		GetInitialGamePath,
+		GetInitialLauncherPath,
 		DetectLosslessDll,
 		GetExeIcon,
 	} from "../../wailsjs/go/main/App";
@@ -181,10 +181,20 @@
 				if (s.prefixPath) prefixPath = s.prefixPath;
 				if (s.selectedPrefixName) selectedPrefixName = s.selectedPrefixName;
 				if (s.selectedProton) selectedProton = s.selectedProton;
-				if (s.options) options = { ...options, ...s.options };
+				if (s.options) {
+					options = { ...options, ...s.options };
+				}
 			}
 
-			const initialPath = await GetInitialGamePath();
+			if (options.LauncherPath) {
+				await loadConfigForGame(options.LauncherPath);
+				if (!launcherIcon) {
+					const icon = await GetExeIcon(options.LauncherPath);
+					if (icon) launcherIcon = icon;
+				}
+			}
+
+			const initialPath = await GetInitialLauncherPath();
 			if (initialPath) {
 				// Only set as game/launcher if not already set, or if explicitly passed from tray
 				if (!options.LauncherPath && !options.GamePath) {

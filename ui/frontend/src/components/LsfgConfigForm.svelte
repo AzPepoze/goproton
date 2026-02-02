@@ -45,8 +45,10 @@
 	</div>
 
 	<div class="form-group">
-		<label>FPS Multiplier</label>
-		<MultiplierInput value={options.LsfgMultiplier} onChange={(val) => (options.LsfgMultiplier = val)} />
+		<label for="lsfgMultiplier">FPS Multiplier</label>
+		<div id="lsfgMultiplier">
+			<MultiplierInput value={options.LsfgMultiplier} onChange={(val) => (options.LsfgMultiplier = val)} />
+		</div>
 	</div>
 
 	<div class="form-group">

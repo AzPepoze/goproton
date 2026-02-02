@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 func main() {
-	// Find UI binary
-	uiPath := "./goproton-ui"
+	// Find UI binary - prefer local bin first
+	uiPath := "./bin/goproton-ui"
 	if _, err := os.Stat(uiPath); os.IsNotExist(err) {
 		uiPath = "./ui/build/bin/goproton-ui"
 	}
@@ -25,19 +26,30 @@ func main() {
 	if len(os.Args) > 1 {
 		gamePath := os.Args[1]
 
-		// Check if file exists
 		if _, err := os.Stat(gamePath); os.IsNotExist(err) {
 			fmt.Printf("Error: File not found: %s\n", gamePath)
 			os.Exit(1)
 		}
 
-		os.Setenv("GOPROTON_GAME_PATH", gamePath)
+		absPath, err := filepath.Abs(gamePath)
+		if err != nil {
+			fmt.Printf("Error: Failed to resolve absolute path: %s\n", err)
+			os.Exit(1)
+		}
+
+		os.Setenv("GOPROTON_LAUNCHER_PATH", absPath)
+		fmt.Printf("Pre-selecting launcher path: %s\n", absPath)
 	}
 
 	// Launch UI
 	cmd := exec.Command(uiPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = os.Environ()
+
+	newEnv := []string{}
+	for _, env := range os.Environ() {
+		newEnv = append(newEnv, env)
+	}
+
 	cmd.Run()
 }

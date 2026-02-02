@@ -4,7 +4,7 @@
 	import {
 		GetListGpus,
 		GetLsfgProfileForGame,
-		GetInitialGamePath,
+		GetInitialLauncherPath,
 		SaveLsfgProfile,
 		DetectLosslessDll,
 		CloseWindow,
@@ -53,7 +53,7 @@
 			// Use passed gamePath or get from environment
 			let currentGamePath = gamePath;
 			if (!currentGamePath) {
-				currentGamePath = await GetInitialGamePath();
+				currentGamePath = await GetInitialLauncherPath();
 			}
 
 			if (!currentGamePath) {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -38,17 +37,13 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-func (a *App) GetInitialGamePath() string {
-	path := os.Getenv("GOPROTON_GAME_PATH")
-	log.Printf("GetInitialGamePath called - value: '%s'", path)
-	os.Unsetenv("GOPROTON_GAME_PATH")
+func (a *App) GetInitialLauncherPath() string {
+	path := os.Getenv("GOPROTON_LAUNCHER_PATH")
 	return path
 }
 
 func (a *App) GetShouldEditLsfg() bool {
 	shouldEdit := os.Getenv("GOPROTON_EDIT_LSFG")
-	log.Printf("GetShouldEditLsfg called - value: '%s'", shouldEdit)
-	os.Unsetenv("GOPROTON_EDIT_LSFG")
 	return shouldEdit == "1"
 }
 

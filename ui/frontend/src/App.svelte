@@ -8,9 +8,10 @@
 	import EditLsfg from "./pages/EditLsfg.svelte";
 	import NotificationHost from "./components/NotificationHost.svelte";
 	import { fade, fly } from "svelte/transition";
-	import { GetInitialGamePath, GetShouldEditLsfg } from "../wailsjs/go/main/App";
+	import { GetInitialLauncherPath, GetShouldEditLsfg } from "../wailsjs/go/main/App";
 	import { onMount } from "svelte";
 	import { navigationCommand } from "./stores/navigationStore";
+	import { runState } from "./stores/runState";
 
 	let activePage = "home";
 	let editLsfgGamePath = "";
@@ -18,14 +19,20 @@
 	onMount(async () => {
 		try {
 			const shouldEditLsfg = await GetShouldEditLsfg();
-			const gamePath = await GetInitialGamePath();
+			const launcherPath = await GetInitialLauncherPath();
 
-			console.log("LSFG Debug - shouldEditLsfg:", shouldEditLsfg, "gamePath:", gamePath);
-
-			if (shouldEditLsfg && gamePath) {
-				editLsfgGamePath = gamePath;
+			if (shouldEditLsfg && launcherPath) {
+				editLsfgGamePath = launcherPath;
 				activePage = "editlsfg";
-				console.log("EditLsfg page triggered for:", gamePath);
+			} else if (launcherPath) {
+				runState.update((state) => ({
+					...state,
+					options: {
+						...state.options,
+						LauncherPath: launcherPath,
+					},
+				}));
+				activePage = "run";
 			}
 		} catch (e) {
 			console.error("Error in App onMount:", e);
@@ -38,12 +45,9 @@
 			if (cmd.page === "editlsfg" && cmd.gamePath) {
 				editLsfgGamePath = cmd.gamePath;
 				activePage = "editlsfg";
-				console.log("Navigated to EditLsfg for game:", cmd.gamePath);
 			} else if (cmd.page) {
 				activePage = cmd.page;
-				console.log("Navigated to page:", cmd.page);
 			}
-			// Clear the command after handling
 			navigationCommand.set(null);
 		}
 	});
