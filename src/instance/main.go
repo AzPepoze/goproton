@@ -269,12 +269,23 @@ func setupLsfgMenu() {
 func launchLsfgUI() {
 	uiBinary := "goproton-ui"
 
-	// Try to find local UI binary first
+	// Try to find UI binary in the same directory as this executable (packed scenario)
 	if exePath, err := os.Executable(); err == nil {
-		localBinary := filepath.Join(filepath.Dir(exePath), "goproton-ui")
+		dir := filepath.Dir(exePath)
+
+		// Check for goproton-ui in the same directory
+		localBinary := filepath.Join(dir, "goproton-ui")
 		if _, err := os.Stat(localBinary); err == nil {
 			uiBinary = localBinary
 			log.Printf("Found local goproton-ui binary: %s", localBinary)
+		} else {
+			// If not found locally, try parent directory (for electron resources structure)
+			parentDir := filepath.Dir(dir)
+			parentBinary := filepath.Join(parentDir, "goproton-ui")
+			if _, err := os.Stat(parentBinary); err == nil {
+				uiBinary = parentBinary
+				log.Printf("Found goproton-ui in parent directory: %s", parentBinary)
+			}
 		}
 	}
 

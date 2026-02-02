@@ -8,7 +8,7 @@
 	import EditLsfg from "./pages/EditLsfg.svelte";
 	import NotificationHost from "./components/NotificationHost.svelte";
 	import { fade, fly } from "svelte/transition";
-	import { onMount, tick } from "svelte";
+	import { onMount } from "svelte";
 	import { navigationCommand } from "./stores/navigationStore";
 	import { GetInitialLauncherPath, GetShouldEditLsfg } from "./api";
 	import { runState } from "./stores/runState";
@@ -39,17 +39,21 @@
 		}
 	});
 
-	// Subscribe to navigation commands
-	navigationCommand.subscribe((cmd) => {
-		if (cmd) {
-			if (cmd.page === "editlsfg" && cmd.gamePath) {
-				editLsfgGamePath = cmd.gamePath;
-				activePage = "editlsfg";
-			} else if (cmd.page) {
-				activePage = cmd.page;
+	onMount(() => {
+		// Subscribe to navigation commands
+		const unsubscribe = navigationCommand.subscribe((cmd) => {
+			if (cmd) {
+				if (cmd.page === "editlsfg" && cmd.gamePath) {
+					editLsfgGamePath = cmd.gamePath;
+					activePage = "editlsfg";
+				} else if (cmd.page) {
+					activePage = cmd.page;
+				}
+				navigationCommand.set(null);
 			}
-			navigationCommand.set(null);
-		}
+		});
+
+		return unsubscribe;
 	});
 
 	function handleNavigate(page: string) {
@@ -78,9 +82,7 @@
 				{:else if activePage === "editlsfg"}
 					<EditLsfg gamePath={editLsfgGamePath} />
 				{:else}
-					<div class="placeholder">
-						Page not implemented yet.
-					</div>
+					<div class="placeholder">Page not implemented yet.</div>
 				{/if}
 			</div>
 		{/key}

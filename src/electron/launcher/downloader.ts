@@ -4,7 +4,7 @@ import path from "path";
 import os from "os";
 import { exec } from "child_process";
 import { promisify } from "util";
-import { ProtonVariant } from "./types.js";
+import type { ProtonVariant } from "./types.js";
 
 const execAsync = promisify(exec);
 

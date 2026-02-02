@@ -1,1 +1,0 @@
-"use strict";const{contextBridge:i,ipcRenderer:o}=require("electron");i.exposeInMainWorld("ipc",{invoke:(e,...r)=>o.invoke(e,...r),on:(e,r)=>(o.on(e,r),()=>o.removeListener(e,r)),off:(e,r)=>o.removeListener(e,r)});

@@ -1,4 +1,4 @@
-import sveltePreprocess from "svelte-preprocess/dist/index.js";
+import sveltePreprocess from "svelte-preprocess";
 
 export default {
 	// Consult https://github.com/sveltejs/svelte-preprocess

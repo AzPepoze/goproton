@@ -47,12 +47,10 @@ func main() {
 
 	// Check if running on Wayland and force XWayland
 	if _, wayland := os.LookupEnv("WAYLAND_DISPLAY"); wayland {
-		// Filter out Wayland-related env vars and conflicting x11/ozone vars
 		var filteredEnv []string
 		for _, e := range env {
 			// Remove Wayland and conflicting variables
-			if !strings.HasPrefix(e, "WAYLAND_") &&
-				!strings.HasPrefix(e, "GDK_BACKEND=") &&
+			if !strings.HasPrefix(e, "GDK_BACKEND=") &&
 				!strings.HasPrefix(e, "OZONE_PLATFORM=") &&
 				!strings.HasPrefix(e, "ELECTRON_OZONE_PLATFORM_HINT=") &&
 				!strings.HasPrefix(e, "XDG_SESSION_TYPE=") {
@@ -75,14 +73,6 @@ func main() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
-	// Log the command being executed
-	fmt.Fprintf(os.Stderr, "Launching: %s %v\n", uiBinary, os.Args[1:])
-	for _, e := range cmd.Env {
-		if strings.HasPrefix(e, "OZONE_") || strings.HasPrefix(e, "GDK_") || strings.HasPrefix(e, "ELECTRON_") || strings.HasPrefix(e, "WAYLAND_") || strings.HasPrefix(e, "XDG_SESSION_") || strings.HasPrefix(e, "QT_QPA_") || e == "RUN_FROM_GOPROTON=true" {
-			fmt.Fprintf(os.Stderr, "  %s\n", e)
-		}
-	}
 
 	// Run the UI
 	if err := cmd.Run(); err != nil {

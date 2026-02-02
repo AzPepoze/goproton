@@ -1,4 +1,4 @@
-import { writable } from "svelte/store";
+import { writable, type Writable } from "svelte/store";
 
 export interface Notification {
 	id: number;
@@ -6,39 +6,39 @@ export interface Notification {
 	type: "info" | "error" | "success";
 }
 
-const { subscribe, update } = writable<Notification[]>([]);
+interface NotificationStore extends Writable<Notification[]> {
+	add(message: string, type?: "info" | "error" | "success"): void;
+	remove(id: number): void;
+	error(message: string): void;
+	success(message: string): void;
+	info(message: string): void;
+}
 
-export const notifications = {
-	subscribe,
-	add: (message: string, type: "info" | "error" | "success" = "info") => {
+function createNotifications(): NotificationStore {
+	const base = writable<Notification[]>([]);
+
+	function add(message: string, type: "info" | "error" | "success" = "info") {
 		const id = Date.now();
-		update((n) => [...n, { id, message, type }]);
+		base.update((n) => [...n, { id, message, type }]);
 		setTimeout(() => {
-			update((n) => n.filter((i) => i.id !== id));
+			base.update((n) => n.filter((i) => i.id !== id));
 		}, 5000);
-	},
-	remove: (id: number) => {
-		update((n) => n.filter((i) => i.id !== id));
-	},
-	error: (message: string) => {
-		const id = Date.now();
-		update((n) => [...n, { id, message, type: "error" }]);
-		setTimeout(() => {
-			update((n) => n.filter((i) => i.id !== id));
-		}, 5000);
-	},
-	success: (message: string) => {
-		const id = Date.now();
-		update((n) => [...n, { id, message, type: "success" }]);
-		setTimeout(() => {
-			update((n) => n.filter((i) => i.id !== id));
-		}, 5000);
-	},
-	info: (message: string) => {
-		const id = Date.now();
-		update((n) => [...n, { id, message, type: "info" }]);
-		setTimeout(() => {
-			update((n) => n.filter((i) => i.id !== id));
-		}, 5000);
-	},
-};
+	}
+
+	function remove(id: number) {
+		base.update((n) => n.filter((i) => i.id !== id));
+	}
+
+	return {
+		subscribe: base.subscribe,
+		set: base.set,
+		update: base.update,
+		add,
+		remove,
+		error: (message: string) => add(message, "error"),
+		success: (message: string) => add(message, "success"),
+		info: (message: string) => add(message, "info"),
+	};
+}
+
+export const notifications: NotificationStore = createNotifications();

@@ -252,9 +252,9 @@
 		}
 	});
 
-	$: if (mounted) {
+	onMount(() => {
 		runState.set({ gamePath, gameIcon, launcherIcon, prefixPath, selectedPrefixName, selectedProton, options });
-	}
+	});
 
 	async function handlePrefixChange(name: string) {
 		if (name !== "Custom...") {

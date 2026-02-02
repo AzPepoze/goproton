@@ -52,14 +52,6 @@ const createWindow = () => {
 		return { action: "deny" };
 	});
 
-	// Handle middle-click and Ctrl/Cmd+click opens
-	win.webContents.on("new-window", (event, url) => {
-		if (url.startsWith("http://") || url.startsWith("https://")) {
-			event.preventDefault();
-			shell.openExternal(url);
-		}
-	});
-
 	if (isDev) {
 		win.loadURL(indexPath);
 	} else {

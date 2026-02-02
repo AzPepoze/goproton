@@ -35,6 +35,7 @@
 			transition:scale={{ duration: 200, start: 0.95 }}
 			role="dialog"
 			aria-modal="true"
+			tabindex="-1"
 		>
 			<div class="modal-header">
 				<h3>{title}</h3>

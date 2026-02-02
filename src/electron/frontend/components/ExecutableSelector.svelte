@@ -33,43 +33,49 @@
 	// Load launcher icon when launcher path changes
 	$: if (internalLauncherPath && internalLauncherPath !== prevLauncherPath) {
 		prevLauncherPath = internalLauncherPath;
+		updateLauncherIcon();
+	}
+
+	// Reload game icon when game path changes
+	$: if (internalGamePath && internalGamePath !== prevGamePath) {
+		prevGamePath = internalGamePath;
+		if (useGameExe) {
+			updateGameIcon();
+		}
+	}
+
+	function updateLauncherIcon() {
 		launcherIconFailed = false;
-		(async () => {
-			try {
-				const icon = await GetExeIcon(internalLauncherPath);
+		GetExeIcon(internalLauncherPath)
+			.then((icon) => {
 				if (icon) {
 					launcherIcon = icon;
 					launcherIconFailed = false;
 				} else {
 					launcherIconFailed = true;
 				}
-			} catch (err) {
+			})
+			.catch((err) => {
 				console.error("Failed to get launcher icon:", err);
 				launcherIconFailed = true;
-			}
-		})();
+			});
 	}
 
-	// Reload game icon when game path changes
-	$: if (internalGamePath && internalGamePath !== prevGamePath) {
-		prevGamePath = internalGamePath;
+	function updateGameIcon() {
 		gameIconFailed = false;
-		if (useGameExe) {
-			(async () => {
-				try {
-					const icon = await GetExeIcon(internalGamePath);
-					if (icon) {
-						gameIcon = icon;
-						gameIconFailed = false;
-					} else {
-						gameIconFailed = true;
-					}
-				} catch (err) {
-					console.error("Failed to get game icon:", err);
+		GetExeIcon(internalGamePath)
+			.then((icon) => {
+				if (icon) {
+					gameIcon = icon;
+					gameIconFailed = false;
+				} else {
 					gameIconFailed = true;
 				}
-			})();
-		}
+			})
+			.catch((err) => {
+				console.error("Failed to get game icon:", err);
+				gameIconFailed = true;
+			});
 	}
 
 	async function handleBrowseLauncherClick() {
