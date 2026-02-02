@@ -18,6 +18,8 @@ export function GetConfig(arg1:string):Promise<launcher.LaunchOptions>;
 
 export function GetExeIcon(arg1:string):Promise<string>;
 
+export function GetInitialGamePath():Promise<string>;
+
 export function GetInitialLauncherPath():Promise<string>;
 
 export function GetListGpus():Promise<Array<string>>;

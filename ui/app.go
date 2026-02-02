@@ -42,6 +42,11 @@ func (a *App) GetInitialLauncherPath() string {
 	return path
 }
 
+func (a *App) GetInitialGamePath() string {
+	path := os.Getenv("GOPROTON_GAME_PATH")
+	return path
+}
+
 func (a *App) GetShouldEditLsfg() bool {
 	shouldEdit := os.Getenv("GOPROTON_EDIT_LSFG")
 	return shouldEdit == "1"
@@ -49,6 +54,8 @@ func (a *App) GetShouldEditLsfg() bool {
 
 func (a *App) CloseWindow() {
 	runtime.Quit(a.ctx)
+	// Kill the process to ensure it doesn't stay running
+	os.Exit(0)
 }
 
 func (a *App) GetExeIcon(exePath string) string {
@@ -159,31 +166,35 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 		}
 	}
 
-	instanceBin := "goproton-instance"
+	instanceName := "goproton-instance"
 
-	// Try to find the binary relative to the current executable
-	exePath, _ := os.Executable()
-	exeDir := filepath.Dir(exePath)
+	// Try to find the binary relative to the current UI executable
+	exeDir := "."
+	if exe, err := os.Executable(); err == nil {
+		exeDir = filepath.Dir(exe)
+	}
 
 	potentialPaths := []string{
-		filepath.Join(exeDir, instanceBin),
-		filepath.Join(exeDir, "../../../bin", instanceBin), // Dev mode: ui/build/bin -> root/bin
-		"./" + instanceBin,
-		"./bin/" + instanceBin,
-		"../" + instanceBin,
-		"../bin/" + instanceBin, // Dev mode: CWD=ui -> root/bin
-		"/usr/bin/" + instanceBin,
+		filepath.Join(exeDir, instanceName),                 // Same dir as UI
+		filepath.Join(exeDir, "../../../bin", instanceName), // Dev mode: ui/build/bin -> root/bin
+		"./bin/" + instanceName,                             // Current dir/bin
+		"./" + instanceName,                                 // Current dir
+		"/usr/bin/" + instanceName,                          // System installed (fallback)
 	}
+
 	foundPath := ""
+
 	for _, p := range potentialPaths {
 		if _, err := os.Stat(p); err == nil {
 			foundPath = p
 			break
 		}
 	}
+
 	if foundPath == "" {
-		return fmt.Errorf("instance manager (%s) not found. Checked: %v. Please run 'make build' first", instanceBin, potentialPaths)
+		return fmt.Errorf("instance manager (%s) not found. Checked: %v. Please run 'make build' first", instanceName, potentialPaths)
 	}
+
 	args := []string{
 		"--game", opts.GamePath,
 		"--launcher", opts.LauncherPath,
@@ -424,10 +435,13 @@ func parseMultiplier(mult string) int {
 }
 
 // GetLsfgProfileForGame retrieves the LSFG profile for a specific game
+// Returns nil if no profile exists (expected for unconfigured games)
 func (a *App) GetLsfgProfileForGame(gamePath string) (*LsfgProfileData, error) {
 	profile, _, err := launcher.FindLsfgProfileForGame(gamePath)
 	if err != nil {
-		return nil, err
+		// No profile found - return nil (not an error)
+		// This is normal for games that haven't been configured yet
+		return nil, nil
 	}
 
 	// Get global config for DLL and AllowFp16

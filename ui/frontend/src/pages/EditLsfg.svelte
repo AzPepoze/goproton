@@ -4,7 +4,7 @@
 	import {
 		GetListGpus,
 		GetLsfgProfileForGame,
-		GetInitialLauncherPath,
+		GetInitialGamePath,
 		SaveLsfgProfile,
 		DetectLosslessDll,
 		CloseWindow,
@@ -12,8 +12,6 @@
 	} from "../../wailsjs/go/main/App";
 	import type { launcher } from "../../wailsjs/go/models";
 	import { onMount } from "svelte";
-
-	export let gamePath = "";
 
 	let options: launcher.LaunchOptions = {
 		GamePath: "",
@@ -50,11 +48,7 @@
 
 	onMount(async () => {
 		try {
-			// Use passed gamePath or get from environment
-			let currentGamePath = gamePath;
-			if (!currentGamePath) {
-				currentGamePath = await GetInitialLauncherPath();
-			}
+			const currentGamePath = await GetInitialGamePath();
 
 			if (!currentGamePath) {
 				error = "No game path provided";
@@ -169,7 +163,7 @@
 	<Modal show={true} title="LSFG-VK Configuration" onClose={handleClose} fullscreen={true}>
 		<div class="modal-content">
 			<div class="profile-info">
-				<p class="game-path">{gamePath}</p>
+				<p class="game-path">{options.GamePath}</p>
 			</div>
 
 			<LsfgConfigForm {options} {gpuList} onDllBrowse={handleBrowseDll} />

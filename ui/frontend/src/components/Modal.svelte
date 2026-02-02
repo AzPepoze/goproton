@@ -67,7 +67,6 @@
 
 	.modal-content {
 		width: 90%;
-		max-width: 500px;
 		background: #1a1a1a;
 		border: 1px solid #333;
 		border-radius: 16px;
