@@ -1,7 +1,10 @@
 package backend
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -56,6 +59,65 @@ func (a *App) runSystemPicker(title string, folder bool, filters []runtime.FileF
 	}
 
 	return "", false
+}
+
+func (a *App) SearchExecutables(folderPath string, maxDepth int, excludeNames []string) ([]string, error) {
+	var executables []string
+	cleanPath := filepath.Clean(folderPath)
+
+	var excludeRegex []*regexp.Regexp
+	for _, pattern := range excludeNames {
+		if pattern == "" {
+			continue
+		}
+		// Convert simple glob * to regex .* for user convenience
+		regStr := pattern
+		if strings.Contains(regStr, "*") {
+			regStr = strings.ReplaceAll(regexp.QuoteMeta(regStr), "\\*", ".*")
+		}
+		// Case insensitive match
+		re, err := regexp.Compile("(?i)" + regStr)
+		if err == nil {
+			excludeRegex = append(excludeRegex, re)
+		}
+	}
+
+	err := filepath.WalkDir(cleanPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		rel, err := filepath.Rel(cleanPath, path)
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			if rel == "." {
+				return nil
+			}
+			depth := len(strings.Split(rel, string(os.PathSeparator)))
+			if maxDepth != -1 && depth > maxDepth {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		fileName := filepath.Base(path)
+		for _, re := range excludeRegex {
+			if re.MatchString(fileName) {
+				return nil
+			}
+		}
+
+		if strings.EqualFold(filepath.Ext(path), ".exe") {
+			executables = append(executables, path)
+		}
+
+		return nil
+	})
+
+	return executables, err
 }
 
 func (a *App) PickFile() (string, error) {

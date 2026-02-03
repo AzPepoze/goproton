@@ -274,7 +274,6 @@
 		position: fixed;
 		bottom: 20px;
 		background: rgba(18, 18, 22, 1);
-		backdrop-filter: blur(24px);
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		border-radius: 20px;
 		transform: translateY(calc(100% - 55px));

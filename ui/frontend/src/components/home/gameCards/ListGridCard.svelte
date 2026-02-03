@@ -1,16 +1,22 @@
 <script lang="ts">
 	import { createEventDispatcher } from "svelte";
-	import playIcon from "../../icons/play.svg";
-	import settingsIcon from "../../icons/settings.svg";
-	import rocketIcon from "../../icons/rocket.svg";
+	import playIcon from "../../../icons/play.svg";
+	import settingsIcon from "../../../icons/settings.svg";
+	import rocketIcon from "../../../icons/rocket.svg";
 
 	export let game: any;
 	export let icon: string = "";
 	export let isRunning: boolean = false;
+	export let isSelectionMode: boolean = false;
+	export let isSelected: boolean = false;
 
 	const dispatch = createEventDispatcher();
 
 	function handleLaunch() {
+		if (isSelectionMode) {
+			dispatch("select", game);
+			return;
+		}
 		dispatch("launch", game);
 	}
 
@@ -19,7 +25,36 @@
 	}
 </script>
 
-<div class="list-card" class:running={isRunning} on:click={handleLaunch}>
+<div
+	class="list-card"
+	class:running={isRunning}
+	class:selection-mode={isSelectionMode}
+	class:selected={isSelected}
+	on:click={handleLaunch}
+	role="button"
+	tabindex="0"
+	on:keydown={(e) => e.key === "Enter" && handleLaunch()}
+>
+	{#if isSelectionMode}
+		<div class="selection-checkbox">
+			<div class="checkbox" class:checked={isSelected}>
+				{#if isSelected}
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="16"
+						height="16"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="3"
+						stroke-linecap="round"
+						stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg
+					>
+				{/if}
+			</div>
+		</div>
+	{/if}
+
 	<div class="icon-section">
 		{#if icon}
 			<img src={icon} alt={game.name} class="game-icon" />
@@ -83,6 +118,38 @@
 		&.running {
 			border-color: var(--success, #22c55e);
 			background: linear-gradient(90deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.02) 100%);
+		}
+
+		&.selected {
+			border-color: var(--accent-primary);
+			background: rgba(var(--accent-primary-rgb, 255, 255, 255), 0.05);
+
+			.checkbox {
+				background: var(--accent-primary) !important;
+				border-color: var(--accent-primary) !important;
+				color: #000;
+			}
+		}
+	}
+
+	.selection-checkbox {
+		flex-shrink: 0;
+
+		.checkbox {
+			width: 24px;
+			height: 24px;
+			border: 2px solid rgba(255, 255, 255, 0.1);
+			border-radius: 6px;
+			background: rgba(0, 0, 0, 0.3);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: all 0.2s;
+			color: transparent;
+
+			svg {
+				stroke: currentColor;
+			}
 		}
 	}
 

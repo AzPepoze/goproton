@@ -8,12 +8,14 @@
 	export let isRunning: boolean = false;
 	export let view: "grid" | "list-grid" | "perspective" = "grid";
 	export let active: boolean = false; // For perspective view
+	export let isSelectionMode: boolean = false;
+	export let isSelected: boolean = false;
 </script>
 
 {#if view === "grid"}
-	<GridCard {game} {icon} {isRunning} on:launch on:configure />
+	<GridCard {game} {icon} {isRunning} {isSelectionMode} {isSelected} on:launch on:configure on:select />
 {:else if view === "list-grid"}
-	<ListGridCard {game} {icon} {isRunning} on:launch on:configure />
+	<ListGridCard {game} {icon} {isRunning} {isSelectionMode} {isSelected} on:launch on:configure on:select />
 {:else}
 	<PerspectiveCard {game} {icon} {isRunning} {active} on:launch on:configure />
 {/if}

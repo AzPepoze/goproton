@@ -14,8 +14,11 @@
 			numVal = min;
 		}
 
-		// Clamp to range
-		numVal = Math.max(min, Math.min(max, numVal));
+		// Clamp to range, but allow -1
+		if (numVal !== -1) {
+			numVal = Math.max(min, Math.min(max, numVal));
+		}
+
 		const newVal = numVal.toString();
 
 		value = newVal;
@@ -39,12 +42,16 @@
 			type="number"
 			class="input"
 			value={parseInt(value) || min}
-			{min}
-			{max}
 			on:change={handleChange}
 			on:blur={handleBlur}
 		/>
-		<span class="range-hint">{min}-{max}</span>
+		<span class="range-hint">
+			{#if value === "-1"}
+				No Limit
+			{:else}
+				{min}-{max}
+			{/if}
+		</span>
 	</div>
 </div>
 

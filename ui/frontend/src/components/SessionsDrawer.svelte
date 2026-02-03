@@ -64,8 +64,7 @@
 		right: 20px;
 		bottom: 100px; /* Leave space for bottom drawer trigger */
 		width: 300px;
-		background: rgba(18, 18, 22, 0.9);
-		backdrop-filter: blur(24px);
+		background: rgba(18, 18, 22, 0.98);
 		border: 1px solid rgba(255, 255, 255, 0.1);
 		border-radius: 20px;
 		transform: translateX(calc(100% - 48px));

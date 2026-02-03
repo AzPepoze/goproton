@@ -218,6 +218,23 @@ func (a *App) KillSession(pid int) error {
 	return process.Signal(os.Interrupt)
 }
 
+func (a *App) RemoveGame(exePath string) error {
+	core.DebugLog("[APP.RemoveGame] Removing game config for: " + exePath)
+	configDir := core.GetConfigPath(exePath)
+
+	if _, err := os.Stat(configDir); err == nil {
+		err = os.RemoveAll(configDir)
+		if err != nil {
+			return fmt.Errorf("failed to remove game config: %w", err)
+		}
+	}
+
+	// Also try to remove LSFG profile if it exists (don't error if it doesn't)
+	_ = lsfg_utils.RemoveProfileFromConfig(exePath)
+
+	return nil
+}
+
 func (a *App) RunPrefixTool(prefixPath, toolName, protonPattern string) error {
 	opts := core.LaunchOptions{
 		MainExecutablePath: toolName,
@@ -240,6 +257,10 @@ func (a *App) SavePrefixConfig(prefixName string, opts core.LaunchOptions) error
 
 func (a *App) LoadPrefixConfig(prefixName string) (*core.LaunchOptions, error) {
 	return core.LoadPrefixConfig(prefixName)
+}
+
+func (a *App) SaveGameConfig(opts core.LaunchOptions) error {
+	return core.SaveGameConfig(opts)
 }
 
 func parseMultiplier(mult string) int {

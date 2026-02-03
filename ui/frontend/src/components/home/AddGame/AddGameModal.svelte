@@ -1,0 +1,380 @@
+<script lang="ts">
+	import {
+		PickFile,
+		PickFolder,
+		SearchExecutables,
+		SaveGameConfig,
+		ListPrefixes,
+		GetPrefixBaseDir,
+	} from "../../../../wailsjs/go/backend/App";
+	import { notifications } from "../../../notificationStore";
+	import { loadExeIcon } from "../../../lib/iconService";
+	import SelectionView from "./SelectionView.svelte";
+	import ConfigView from "./ConfigView.svelte";
+	import ReviewView from "./ReviewView.svelte";
+	import Modal from "../../Modal.svelte";
+	import Dropdown from "../../Dropdown.svelte";
+	import { onMount } from "svelte";
+	import { fade } from "svelte/transition";
+
+	export let show: boolean = false;
+	export let onClose: () => void;
+	export let onRefresh: () => void;
+
+	let addMode: "select" | "folder-config" | "folder-review" = "select";
+	let searchDepth = "2";
+	let excludeNames = "UnityCrashHandler64, uninstall, redist";
+	let selectedFolder = "";
+	let foundExecutables: { path: string; name: string; icon: string | null }[] = [];
+	let discardedExecutables = new Set<string>();
+	let isSearching = false;
+
+	let prefixes: string[] = [];
+	let selectedPrefix = "default";
+	let prefixBaseDir = "";
+
+	async function loadPrefixes() {
+		try {
+			const list = await ListPrefixes();
+			prefixes = list || [];
+			prefixBaseDir = await GetPrefixBaseDir();
+
+			// If "Default" or "default" is in the list, select it
+			if (prefixes.includes("Default")) {
+				selectedPrefix = "Default";
+			} else if (prefixes.includes("default")) {
+				selectedPrefix = "default";
+			} else if (prefixes.length > 0) {
+				selectedPrefix = prefixes[0];
+			}
+		} catch (err) {
+			console.error("Failed to load prefixes:", err);
+		}
+	}
+
+	onMount(() => {
+		loadPrefixes();
+	});
+
+	function resetState() {
+		addMode = "select";
+		selectedFolder = "";
+		foundExecutables = [];
+		discardedExecutables = new Set();
+		searchDepth = "2";
+		excludeNames = "UnityCrashHandler64, uninstall, redist";
+		isSearching = false;
+		loadPrefixes();
+	}
+
+	$: if (!show) resetState();
+
+	async function handleAddFile() {
+		try {
+			const path = await PickFile();
+			if (path) {
+				const name = path.split("/").pop()?.replace(".exe", "") || "Game";
+				await saveGame(path);
+				notifications.add(`Added ${name}`, "success");
+				onRefresh();
+				onClose();
+			}
+		} catch (err) {
+			notifications.add(`Failed to add game: ${err}`, "error");
+		}
+	}
+
+	async function handleAddFolder() {
+		try {
+			const folder = await PickFolder();
+			if (folder) {
+				selectedFolder = folder;
+				addMode = "folder-config";
+			}
+		} catch (err) {
+			notifications.add(`Failed to select folder: ${err}`, "error");
+		}
+	}
+
+	async function startFolderScan() {
+		if (!selectedFolder) return;
+		try {
+			isSearching = true;
+			const depth = parseInt(searchDepth);
+			const validDepth = isNaN(depth) ? 2 : depth;
+			const excludes = excludeNames
+				.split(",")
+				.map((e) => e.trim())
+				.filter((e) => e !== "");
+
+			const exes = await SearchExecutables(selectedFolder, validDepth, excludes);
+			if (exes && exes.length > 0) {
+				foundExecutables = exes.map((path) => ({
+					path,
+					name: path.split("/").pop()?.replace(".exe", "") || "Game",
+					icon: null,
+				}));
+				addMode = "folder-review";
+				discardedExecutables = new Set();
+				foundExecutables.forEach((item, index) => {
+					loadExeIcon(item.path).then((icon) => {
+						if (icon) {
+							foundExecutables[index].icon = icon;
+							foundExecutables = [...foundExecutables];
+						}
+					});
+				});
+			} else {
+				notifications.add("No executables found in folder", "info");
+				addMode = "select";
+			}
+		} catch (err) {
+			notifications.add(`Failed to search folder: ${err}`, "error");
+		} finally {
+			isSearching = false;
+		}
+	}
+
+	async function saveGame(path: string) {
+		const config = {
+			MainExecutablePath: path,
+			LauncherPath: "",
+			HaveGameExe: true,
+			PrefixPath: prefixBaseDir + "/" + selectedPrefix,
+			ProtonPath: "",
+			ProtonPattern: "GE-Proton*",
+			LsfgMultiplier: "2",
+			MemoryMinValue: "4G",
+			GamescopeW: "1920",
+			GamescopeH: "1080",
+			GamescopeR: "60",
+		};
+		// @ts-ignore
+		await SaveGameConfig(config);
+	}
+
+	function toggleDiscard(path: string) {
+		if (discardedExecutables.has(path)) discardedExecutables.delete(path);
+		else discardedExecutables.add(path);
+		discardedExecutables = discardedExecutables;
+	}
+
+	async function confirmAddFolder() {
+		const toAdd = foundExecutables.filter((exe) => !discardedExecutables.has(exe.path));
+		if (toAdd.length === 0) {
+			onClose();
+			return;
+		}
+		let addedCount = 0;
+		for (const exe of toAdd) {
+			try {
+				await saveGame(exe.path);
+				addedCount++;
+			} catch (err) {
+				console.error(`Failed to add ${exe.name}:`, err);
+			}
+		}
+		notifications.add(`Added ${addedCount} games`, "success");
+		onRefresh();
+		onClose();
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === "Escape" && show) onClose();
+	}
+</script>
+
+<svelte:window on:keydown={handleKeydown} />
+
+<Modal
+	{show}
+	title={addMode === "select"
+		? "Add Game"
+		: addMode === "folder-config"
+			? "Search Configuration"
+			: "Found Executables"}
+	onClose={() => onClose()}
+	showDone={false}
+	contentClass={addMode === "select" ? "selection-modal-style" : ""}
+>
+	<div class="add-container">
+		{#if addMode === "select"}
+			<div class="prefix-selection-quick" transition:fade>
+				<label for="quick-prefix">Target Prefix</label>
+				<Dropdown options={prefixes} bind:value={selectedPrefix} placeholder="Select WINE Prefix" />
+			</div>
+			<SelectionView onAddFile={handleAddFile} onAddFolder={handleAddFolder} />
+		{:else if addMode === "folder-config"}
+			<ConfigView {selectedFolder} bind:searchDepth bind:excludeNames {prefixes} bind:selectedPrefix />
+		{:else}
+			<ReviewView {foundExecutables} {discardedExecutables} onToggleDiscard={toggleDiscard} />
+		{/if}
+	</div>
+
+	<div slot="footer" class="modal-footer-wizard">
+		{#if addMode === "select"}
+			<p class="selection-footer-text">Select how you want to add games to your library</p>
+		{:else if addMode === "folder-config"}
+			<button class="secondary-btn" on:click={() => (addMode = "select")}>Back</button>
+			<button class="primary-btn" on:click={startFolderScan} disabled={isSearching}>
+				{#if isSearching}
+					<div class="spinner small"></div>
+					Scanning...
+				{:else}
+					Start Search
+				{/if}
+			</button>
+		{:else if addMode === "folder-review"}
+			<button class="secondary-btn" on:click={() => (addMode = "folder-config")}>Back</button>
+			<button class="primary-btn" on:click={confirmAddFolder}>
+				Add {foundExecutables.length - discardedExecutables.size} Games
+			</button>
+		{/if}
+	</div>
+</Modal>
+
+<style lang="scss">
+	:global(.selection-modal-style) {
+		max-width: 620px !important;
+		background: linear-gradient(145deg, #1e1e22 0%, #121214 100%) !important;
+		border-radius: 30px !important;
+		border: 1px solid rgba(255, 255, 255, 0.1) !important;
+		box-shadow: 0 50px 100px rgba(0, 0, 0, 0.5) !important;
+
+		&::before {
+			content: "";
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			height: 1px;
+			background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+		}
+
+		:global(.modal-header) {
+			padding: 40px 40px 15px !important;
+			border-bottom: none !important;
+			background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0%, transparent 100%) !important;
+
+			h3 {
+				font-size: 1.6rem !important;
+				font-weight: 900 !important;
+				letter-spacing: -1px !important;
+				text-transform: uppercase !important;
+				background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+				-webkit-background-clip: text;
+				-webkit-text-fill-color: transparent;
+			}
+		}
+
+		:global(.modal-body) {
+			padding: 24px 40px !important;
+		}
+
+		:global(.modal-footer) {
+			border-top: none !important;
+			padding: 0 40px 30px !important;
+			justify-content: center !important;
+		}
+	}
+
+	.selection-footer-text {
+		margin: 0;
+		font-size: 0.85rem;
+		color: rgba(255, 255, 255, 0.3);
+		font-weight: 600;
+		text-align: center;
+	}
+
+	.prefix-selection-quick {
+		margin-bottom: 24px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+
+		label {
+			font-size: 0.75rem;
+			font-weight: 800;
+			color: rgba(255, 255, 255, 0.4);
+			text-transform: uppercase;
+			letter-spacing: 1px;
+		}
+	}
+
+	.modal-footer-wizard {
+		display: flex;
+		justify-content: flex-end;
+		align-items: center;
+		gap: 12px;
+		width: 100%;
+	}
+
+	.add-container {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.primary-btn {
+		background: linear-gradient(135deg, #ffffff 0%, #e4e4e7 100%);
+		color: #000;
+		border: none;
+		border-radius: 12px;
+		padding: 12px 28px;
+		font-weight: 900;
+		text-transform: uppercase;
+		letter-spacing: 1px;
+		cursor: pointer;
+		transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
+
+		&:hover {
+			transform: scale(1.05) translateY(-2px);
+			box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+			background: #fff;
+		}
+
+		&:active {
+			transform: scale(0.98);
+		}
+
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+			transform: none;
+			box-shadow: none;
+		}
+	}
+
+	.secondary-btn {
+		background: rgba(255, 255, 255, 0.05);
+		color: #fff;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 12px;
+		padding: 12px 24px;
+		font-weight: 800;
+		cursor: pointer;
+		transition: all 0.2s;
+		&:hover {
+			background: rgba(255, 255, 255, 0.1);
+			border-color: rgba(255, 255, 255, 0.2);
+		}
+	}
+
+	.spinner {
+		width: 18px;
+		height: 18px;
+		border: 2px solid rgba(0, 0, 0, 0.1);
+		border-top-color: #000;
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+</style>

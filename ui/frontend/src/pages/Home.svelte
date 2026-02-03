@@ -1,24 +1,47 @@
 <script lang="ts">
-	import { GetAllGames, GetRunningSessions, KillSession, RunGame } from "../../wailsjs/go/backend/App";
+	import {
+		GetAllGames,
+		GetRunningSessions,
+		KillSession,
+		RunGame,
+		ListPrefixes,
+		RemoveGame,
+	} from "../../wailsjs/go/backend/App";
 	import { onMount, onDestroy } from "svelte";
-	import { fly } from "svelte/transition";
+	import { fly, fade } from "svelte/transition";
 	import { notifications } from "../notificationStore";
 	import { navigationCommand } from "../stores/navigationStore";
 	import { runState } from "../stores/runState";
 	import { loadExeIcon } from "../lib/iconService";
-	import GameCard from "../components/GameCard.svelte";
+	import GameCard from "../components/home/GameCard.svelte";
 	import StatusDrawer from "../components/StatusDrawer.svelte";
 	import Modal from "../components/Modal.svelte";
+	import AddGameModal from "../components/home/AddGame/AddGameModal.svelte";
+	import Dropdown from "../components/Dropdown.svelte";
 
 	let games = [];
 	let sessions = [];
+	let prefixes = ["All Prefixes"];
+	let selectedPrefixFilter = "All Prefixes";
 	let sessionInterval;
 	let gameIcons = {};
 	let showHelpModal = false;
+	let showAddModal = false;
+	let showBulkRemoveModal = false;
 	let currentView: "grid" | "list-grid" = "grid";
 	let searchQuery = "";
 
-	$: filteredGames = games.filter((game) => game.name.toLowerCase().includes(searchQuery.toLowerCase()));
+	let isSelectionMode = false;
+	let selectedPaths = new Set<string>();
+
+	$: filteredGames = games.filter((game) => {
+		const matchesSearch = game.name.toLowerCase().includes(searchQuery.toLowerCase());
+		const matchesPrefix =
+			selectedPrefixFilter === "All Prefixes" ||
+			game.config.PrefixPath.endsWith("/" + selectedPrefixFilter) ||
+			game.config.PrefixPath.endsWith("\\" + selectedPrefixFilter);
+		return matchesSearch && matchesPrefix;
+	});
 
 	async function refreshData() {
 		try {
@@ -26,6 +49,9 @@
 			games = fetchedGames || [];
 			const fetchedSessions = await GetRunningSessions();
 			sessions = fetchedSessions || [];
+
+			const fetchedPrefixes = await ListPrefixes();
+			prefixes = ["All Prefixes", ...(fetchedPrefixes || [])];
 
 			// Fetch icons for games
 			for (const game of games) {
@@ -91,6 +117,47 @@
 			notifications.add(`Failed to kill session: ${err}`, "error");
 		}
 	}
+
+	function toggleSelectionMode() {
+		isSelectionMode = !isSelectionMode;
+		if (!isSelectionMode) {
+			selectedPaths.clear();
+			selectedPaths = selectedPaths; // trigger reactivity
+		}
+	}
+
+	function toggleGameSelection(game) {
+		const path = game.path || game.config.LauncherPath;
+		if (selectedPaths.has(path)) {
+			selectedPaths.delete(path);
+		} else {
+			selectedPaths.add(path);
+		}
+		selectedPaths = selectedPaths; // trigger reactivity
+	}
+
+	async function handleBulkRemove() {
+		if (selectedPaths.size === 0) return;
+		showBulkRemoveModal = true;
+	}
+
+	async function confirmBulkRemove() {
+		try {
+			let count = 0;
+			for (const path of selectedPaths) {
+				await RemoveGame(path);
+				count++;
+			}
+			notifications.add(`Successfully removed ${count} games`, "success");
+			selectedPaths.clear();
+			selectedPaths = selectedPaths;
+			isSelectionMode = false;
+			showBulkRemoveModal = false;
+			refreshData();
+		} catch (err) {
+			notifications.add(`Failed to remove some games: ${err}`, "error");
+		}
+	}
 </script>
 
 <div class="home-container">
@@ -119,23 +186,99 @@
 	<div class="quick-launch-section">
 		<div class="section-header">
 			<h2 class="section-title">Quick Launch</h2>
-			<button class="help-btn" on:click={() => (showHelpModal = true)} title="How it works">
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="20"
-					height="20"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2.5"
-					stroke-linecap="round"
-					stroke-linejoin="round"
+
+			{#if isSelectionMode}
+				<div class="selection-actions" in:fade>
+					<span class="selection-count">{selectedPaths.size} selected</span>
+					<button
+						class="bulk-remove-btn"
+						on:click={handleBulkRemove}
+						disabled={selectedPaths.size === 0}
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="18"
+							height="18"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
+							></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line
+								x1="10"
+								y1="11"
+								x2="10"
+								y2="17"
+							></line><line x1="14" y1="11" x2="14" y2="17"></line></svg
+						>
+						Remove Selected
+					</button>
+					<button class="cancel-selection-btn" on:click={toggleSelectionMode}> Cancel </button>
+				</div>
+			{:else}
+				<button class="add-btn" on:click={() => (showAddModal = true)} title="Add Game">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<line x1="12" y1="5" x2="12" y2="19"></line>
+						<line x1="5" y1="12" x2="19" y2="12"></line>
+					</svg>
+				</button>
+
+				<button
+					class="select-mode-btn"
+					on:click={toggleSelectionMode}
+					title="Bulk Remove"
+					class:active={isSelectionMode}
 				>
-					<circle cx="12" cy="12" r="10" />
-					<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-					<line x1="12" y1="17" x2="12.01" y2="17" />
-				</svg>
-			</button>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><polyline points="9 11 12 14 22 4"></polyline><path
+							d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+						></path></svg
+					>
+				</button>
+
+				<button class="help-btn" on:click={() => (showHelpModal = true)} title="How it works">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2.5"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<circle cx="12" cy="12" r="10" />
+						<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+						<line x1="12" y1="17" x2="12.01" y2="17" />
+					</svg>
+				</button>
+			{/if}
+
+			<div class="prefix-filter-container">
+				<Dropdown options={prefixes} bind:value={selectedPrefixFilter} placeholder="All Prefixes" />
+			</div>
 
 			<div class="search-container">
 				<svg
@@ -155,7 +298,7 @@
 				</svg>
 				<input type="text" placeholder="Search games..." bind:value={searchQuery} class="search-input" />
 				{#if searchQuery}
-					<button class="clear-search" on:click={() => (searchQuery = "")}>
+					<button class="clear-search" on:click={() => (searchQuery = "")} aria-label="Clear search">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							width="14"
@@ -246,8 +389,20 @@
 			>
 				{#if filteredGames.length === 0 && games.length > 0}
 					<div class="no-results">
-						<p>No games matching "{searchQuery}"</p>
-						<button class="link-btn" on:click={() => (searchQuery = "")}>Clear search</button>
+						<p>
+							No games matching
+							{#if searchQuery}"{searchQuery}"{/if}
+							{#if selectedPrefixFilter !== "All Prefixes"}
+								in prefix <b>{selectedPrefixFilter}</b>
+							{/if}
+						</p>
+						<button
+							class="link-btn"
+							on:click={() => {
+								searchQuery = "";
+								selectedPrefixFilter = "All Prefixes";
+							}}>Clear all filters</button
+						>
 					</div>
 				{:else}
 					<div class="games-grid">
@@ -256,9 +411,12 @@
 								{game}
 								icon={gameIcons[game.path || game.config.LauncherPath]}
 								isRunning={isGameRunning(game)}
+								{isSelectionMode}
+								isSelected={selectedPaths.has(game.path || game.config.LauncherPath)}
 								view={currentView}
 								on:launch={() => handleQuickLaunch(game)}
 								on:configure={() => handleConfigure(game)}
+								on:select={() => toggleGameSelection(game)}
 							/>
 						{/each}
 					</div>
@@ -298,6 +456,36 @@
 		</section>
 	</div>
 </Modal>
+
+<Modal show={showBulkRemoveModal} title="Remove Games" onClose={() => (showBulkRemoveModal = false)}>
+	<div class="confirm-modal-content">
+		<div class="warning-icon">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="48"
+				height="48"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="#ef4444"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+				></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"
+				></line></svg
+			>
+		</div>
+		<p>Are you sure you want to remove <strong>{selectedPaths.size}</strong> games from the library?</p>
+		<p class="sub-text">This will only remove them from the Quick Launch list, not from your disk.</p>
+	</div>
+
+	<div slot="footer" class="modal-footer-actions">
+		<button class="cancel-btn" on:click={() => (showBulkRemoveModal = false)}> Cancel </button>
+		<button class="confirm-remove-btn" on:click={confirmBulkRemove}> Remove Games </button>
+	</div>
+</Modal>
+
+<AddGameModal show={showAddModal} onClose={() => (showAddModal = false)} onRefresh={refreshData} />
 
 <StatusDrawer />
 
@@ -501,6 +689,138 @@
 			}
 		}
 
+		.select-mode-btn {
+			background: rgba(255, 255, 255, 0.05);
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			color: rgba(255, 255, 255, 0.6);
+			cursor: pointer;
+			padding: 4px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: all 0.2s;
+			border-radius: 50%;
+
+			&:hover {
+				color: #fff;
+				background: rgba(255, 255, 255, 0.1);
+				transform: scale(1.1);
+			}
+
+			&.active {
+				background: var(--accent-primary);
+				color: #000;
+				border-color: transparent;
+			}
+
+			svg {
+				width: 18px;
+				height: 18px;
+			}
+		}
+
+		.selection-actions {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			background: rgba(255, 255, 255, 0.05);
+			padding: 4px 12px;
+			border-radius: 16px;
+			border: 1px solid rgba(255, 255, 255, 0.1);
+
+			.selection-count {
+				font-size: 0.85rem;
+				font-weight: 700;
+				color: var(--accent-primary);
+			}
+
+			.bulk-remove-btn {
+				background: #ef4444;
+				color: #fff;
+				border: none;
+				padding: 6px 12px;
+				border-radius: 8px;
+				font-size: 0.8rem;
+				font-weight: 800;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				transition: all 0.2s;
+
+				&:hover:not(:disabled) {
+					filter: brightness(1.2);
+					transform: translateY(-1px);
+				}
+
+				&:disabled {
+					opacity: 0.5;
+					cursor: not-allowed;
+				}
+			}
+
+			.cancel-selection-btn {
+				background: none;
+				border: none;
+				color: rgba(255, 255, 255, 0.4);
+				font-size: 0.8rem;
+				font-weight: 700;
+				cursor: pointer;
+
+				&:hover {
+					color: #fff;
+				}
+			}
+		}
+
+		.add-btn {
+			background: var(--accent-primary);
+			border: none;
+			color: #000;
+			cursor: pointer;
+			padding: 4px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: all 0.2s;
+			border-radius: 50%;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+			&:hover {
+				filter: brightness(1.2);
+				transform: scale(1.1) rotate(90deg);
+				box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+			}
+
+			svg {
+				width: 20px;
+				height: 20px;
+			}
+		}
+
+		.prefix-filter-container {
+			min-width: 160px;
+			max-width: 200px;
+
+			:global(.dropdown-trigger) {
+				padding: 8px 12px;
+				font-size: 0.8rem;
+				background: rgba(255, 255, 255, 0.05);
+				border-color: rgba(255, 255, 255, 0.05);
+
+				&:hover {
+					background: rgba(255, 255, 255, 0.1);
+					border-color: rgba(255, 255, 255, 0.2);
+				}
+			}
+
+			:global(.dropdown-menu) {
+				background: #18181b;
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+			}
+		}
+
 		.search-container {
 			display: flex;
 			align-items: center;
@@ -593,6 +913,74 @@
 			& + section {
 				padding-top: 16px;
 				border-top: 1px solid rgba(255, 255, 255, 0.05);
+			}
+		}
+	}
+
+	.confirm-modal-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		gap: 16px;
+		padding: 10px 0;
+
+		p {
+			margin: 0;
+			font-size: 1.1rem;
+			color: rgba(255, 255, 255, 0.9);
+
+			strong {
+				color: #ef4444;
+			}
+		}
+
+		.sub-text {
+			font-size: 0.9rem;
+			color: rgba(255, 255, 255, 0.4);
+		}
+
+		.warning-icon {
+			background: rgba(239, 68, 68, 0.1);
+			padding: 20px;
+			border-radius: 50%;
+			margin-bottom: 8px;
+		}
+	}
+
+	.modal-footer-actions {
+		display: flex;
+		gap: 12px;
+		width: 100%;
+
+		button {
+			flex: 1;
+			padding: 12px;
+			border-radius: 12px;
+			font-weight: 800;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+
+		.cancel-btn {
+			background: rgba(255, 255, 255, 0.05);
+			border: 1px solid rgba(255, 255, 255, 0.1);
+			color: #fff;
+
+			&:hover {
+				background: rgba(255, 255, 255, 0.1);
+			}
+		}
+
+		.confirm-remove-btn {
+			background: #ef4444;
+			border: none;
+			color: #fff;
+			box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+
+			&:hover {
+				filter: brightness(1.2);
+				transform: translateY(-2px);
 			}
 		}
 	}

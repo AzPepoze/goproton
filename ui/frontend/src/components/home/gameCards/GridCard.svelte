@@ -1,16 +1,22 @@
 <script lang="ts">
 	import { createEventDispatcher } from "svelte";
-	import playIcon from "../../icons/play.svg";
-	import settingsIcon from "../../icons/settings.svg";
-	import rocketIcon from "../../icons/rocket.svg";
+	import playIcon from "../../../icons/play.svg";
+	import settingsIcon from "../../../icons/settings.svg";
+	import rocketIcon from "../../../icons/rocket.svg";
 
 	export let game: any;
 	export let icon: string = "";
 	export let isRunning: boolean = false;
+	export let isSelectionMode: boolean = false;
+	export let isSelected: boolean = false;
 
 	const dispatch = createEventDispatcher();
 
 	function handleLaunch() {
+		if (isSelectionMode) {
+			dispatch("select", game);
+			return;
+		}
 		dispatch("launch", game);
 	}
 
@@ -19,10 +25,30 @@
 	}
 </script>
 
-<div class="game-card" class:running={isRunning}>
+<div class="game-card" class:running={isRunning} class:selection-mode={isSelectionMode} class:selected={isSelected}>
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="game-icon-container" on:click={handleLaunch}>
+	<div class="game-icon-container" on:click={handleLaunch} role="button" tabindex="0">
+		{#if isSelectionMode}
+			<div class="selection-overlay">
+				<div class="checkbox">
+					{#if isSelected}
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="3"
+							stroke-linecap="round"
+							stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg
+						>
+					{/if}
+				</div>
+			</div>
+		{/if}
+
 		{#if isRunning}
 			<div class="running-indicator">
 				<span class="pulse"></span>
@@ -64,6 +90,19 @@
 		width: 100%;
 		margin: 0 auto;
 
+		&.selected {
+			.game-icon-container {
+				border-color: var(--accent-primary);
+				box-shadow: 0 0 20px rgba(var(--accent-primary-rgb, 255, 255, 255), 0.3);
+			}
+
+			.checkbox {
+				background: var(--accent-primary) !important;
+				border-color: var(--accent-primary) !important;
+				color: #000;
+			}
+		}
+
 		&:hover {
 			transform: scale(1.05);
 
@@ -78,7 +117,6 @@
 
 				.play-overlay {
 					opacity: 1;
-					backdrop-filter: blur(4px);
 				}
 
 				img.game-icon {
@@ -89,6 +127,18 @@
 			.game-footer .game-name {
 				color: #fff;
 				text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+			}
+
+			.config-btn {
+				opacity: 1;
+				visibility: visible;
+				transform: translateX(0);
+			}
+		}
+
+		&.selection-mode:hover {
+			.play-overlay {
+				opacity: 0 !important;
 			}
 		}
 
@@ -176,6 +226,35 @@
 		}
 	}
 
+	.selection-overlay {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: flex-start;
+		justify-content: flex-end;
+		padding: 12px;
+		z-index: 5;
+		background: rgba(0, 0, 0, 0.2);
+		border-radius: 26px;
+
+		.checkbox {
+			width: 24px;
+			height: 24px;
+			border: 2px solid rgba(255, 255, 255, 0.3);
+			border-radius: 6px;
+			background: rgba(0, 0, 0, 0.5);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: all 0.2s;
+			color: transparent;
+
+			svg {
+				stroke: currentColor;
+			}
+		}
+	}
+
 	.game-card:hover .launch-icon-large {
 		transform: scale(1);
 	}
@@ -235,10 +314,13 @@
 			align-items: center;
 			justify-content: center;
 			transition: all 0.3s;
+			opacity: 0;
+			visibility: hidden;
+			transform: translateX(10px);
 
 			&:hover {
 				background: rgba(255, 255, 255, 0.15);
-				transform: rotate(45deg);
+				transform: rotate(45deg) !important;
 				border-color: rgba(255, 255, 255, 0.3);
 			}
 

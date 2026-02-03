@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from "svelte";
-	import rocketIcon from "../../icons/rocket.svg";
+	import rocketIcon from "../../../icons/rocket.svg";
 
 	export let game: any;
 	export let icon: string = "";
@@ -19,7 +19,13 @@
 </script>
 
 <div class="perspective-card" class:active class:running={isRunning}>
-	<div class="card-inner" on:click={handleLaunch}>
+	<div
+		class="card-inner"
+		on:click={handleLaunch}
+		role="button"
+		tabindex="0"
+		on:keydown={(e) => e.key === "Enter" && handleLaunch()}
+	>
 		<div class="glow"></div>
 
 		<div class="image-container">
