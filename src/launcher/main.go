@@ -45,6 +45,11 @@ func main() {
 	// Set up environment variables
 	env := os.Environ()
 
+	// If a launcher/game path was provided as first argument, pass it via env var
+	if len(os.Args) > 1 {
+		env = append(env, fmt.Sprintf("GOPROTON_LAUNCHER_PATH=%s", os.Args[1]))
+	}
+
 	// Check if running on Wayland and force XWayland
 	if _, wayland := os.LookupEnv("WAYLAND_DISPLAY"); wayland {
 		var filteredEnv []string

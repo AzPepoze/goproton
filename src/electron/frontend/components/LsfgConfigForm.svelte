@@ -174,7 +174,7 @@
 		background: var(--accent-primary);
 		border: none;
 		border-radius: 6px;
-		color: white;
+		color: #000;
 		font-weight: 600;
 		cursor: pointer;
 		transition: background 0.2s;

@@ -4,8 +4,7 @@
 	"type": "module",
 	"main": "build/electron/main.js",
 	"scripts": {
-		"dev": "npm run build && vite",
-		"start": "npm run build && dist/linux-unpacked/goproton-ui",
+		"dev": "npm run build && dist/linux-unpacked/goproton-ui",
 		"build": "npm run build:instance && npm run build:launcher && vite build && electron-builder",
 		"build:instance": "go build -o bin/goproton-instance ./src/instance",
 		"build:launcher": "go build -o bin/goproton ./src/launcher",
