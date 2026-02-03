@@ -10,11 +10,11 @@
 		SavePrefixConfig,
 		LoadPrefixConfig,
 		GetSystemToolsStatus,
-	} from "../../wailsjs/go/main/App";
+	} from "../../wailsjs/go/backend/App";
 	import Dropdown from "../components/Dropdown.svelte";
 	import ConfigForm from "../components/ConfigForm.svelte";
 	import ToolButton from "../components/ToolButton.svelte";
-	import type { launcher } from "../../wailsjs/go/models";
+	import type { core } from "../../wailsjs/go/models";
 	import { notifications } from "../notificationStore";
 	import { createLaunchOptions } from "../lib/formService";
 	// Icons
@@ -38,7 +38,7 @@
 	let runningToolName = "";
 
 	// Config
-	let prefixOptions: launcher.LaunchOptions = createLaunchOptions();
+	let prefixOptions: core.LaunchOptions = createLaunchOptions();
 
 	async function refreshPrefixes() {
 		try {
@@ -366,8 +366,9 @@
 			background: var(--accent-primary);
 			color: black;
 			font-weight: 600;
-			.folder-icon {
-				color: black;
+			.folder-icon img {
+				filter: brightness(0);
+				opacity: 0.9;
 			}
 		}
 		.folder-icon {

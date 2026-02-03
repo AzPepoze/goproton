@@ -1,10 +1,10 @@
 package main
 
-import "goproton/pkg/launcher"
+import "goproton/pkg/core"
 
 // buildLaunchOptions creates the launch options from command line flags
-func buildLaunchOptions() launcher.LaunchOptions {
-	return launcher.LaunchOptions{
+func buildLaunchOptions() core.LaunchOptions {
+	return core.LaunchOptions{
 		MainExecutablePath: gamePath,
 		LauncherPath:       launcherPath,
 		PrefixPath:         prefixPath,

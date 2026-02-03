@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { ScanProtonVersions } from "../../wailsjs/go/main/App";
+	import { ScanProtonVersions } from "../../wailsjs/go/backend/App";
 	import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
-	import type { launcher } from "../../wailsjs/go/models";
+	import type { core } from "../../wailsjs/go/models";
 	import { notifications } from "../notificationStore";
 
 	import steamIcon from "../icons/steam.png";
-	import forkedIcon from "../icons/protron_forked.png";
+	import externalIcon from "../icons/protron_forked.png";
 
-	let protonVersions: launcher.ProtonTool[] = [];
+	let protonVersions: core.ProtonTool[] = [];
 	let isLoading = true;
 
 	onMount(async () => {
@@ -57,14 +57,14 @@
 			{#each protonVersions as tool}
 				<div class="version-card">
 					<div class="icon">
-						<img src={tool.IsSteam ? steamIcon : forkedIcon} alt="tool" class="tool-icon" />
+						<img src={tool.IsSteam ? steamIcon : externalIcon} alt="tool" class="tool-icon" />
 					</div>
 					<div class="info">
 						<div class="name">{tool.Name}</div>
 						<div class="path" title={tool.Path}>{tool.Path}</div>
 					</div>
 					<div class="type-badge" class:steam={tool.IsSteam}>
-						{tool.IsSteam ? "Steam" : "Forked"}
+						{tool.IsSteam ? "Steam" : "External"}
 					</div>
 				</div>
 			{/each}

@@ -17,6 +17,7 @@ ui/frontend/dist/
 ui/frontend/node_modules/
 ui/frontend/.svelte-kit/
 ui/frontend/.vercel/
+ui/frontend/wailsjs
 
 # IDEs
 .vscode/

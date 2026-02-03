@@ -1,4 +1,4 @@
-package launcher
+package core
 
 type LaunchOptions struct {
 	MainExecutablePath string `json:"MainExecutablePath"`

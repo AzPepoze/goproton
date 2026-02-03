@@ -2,6 +2,11 @@ package main
 
 import (
 	"embed"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"goproton-wails/backend"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -12,10 +17,19 @@ import (
 var assets embed.FS
 
 func main() {
-	// Create an instance of the app structure
-	app := NewApp()
+	if len(os.Args) > 1 {
+		gamePath := os.Args[1]
 
-	// Create application with options
+		if _, err := os.Stat(gamePath); err == nil {
+			if absPath, err := filepath.Abs(gamePath); err == nil {
+				os.Setenv("GOPROTON_LAUNCHER_PATH", absPath)
+				fmt.Printf("Pre-selecting launcher path: %s\n", absPath)
+			}
+		}
+	}
+
+	app := backend.NewApp()
+
 	err := wails.Run(&options.App{
 		Title:  "GoProton",
 		Width:  1024,
@@ -24,7 +38,7 @@ func main() {
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 24, G: 24, B: 27, A: 1},
-		OnStartup:        app.startup,
+		OnStartup:        app.Startup,
 		Bind: []interface{}{
 			app,
 		},

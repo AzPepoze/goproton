@@ -1,8 +1,8 @@
-import type { launcher } from "../../wailsjs/go/models";
+import type { core } from "../../wailsjs/go/models";
 
 export interface ConfigLoadResult {
 	success: boolean;
-	data: Partial<launcher.LaunchOptions> | null;
+	data: Partial<core.LaunchOptions> | null;
 	error: string;
 }
 
@@ -55,7 +55,7 @@ export async function saveConfigSafely<T>(
 /**
  * Validates if required paths are set in LaunchOptions
  */
-export function validateLaunchOptions(options: launcher.LaunchOptions): { valid: boolean; errors: string[] } {
+export function validateLaunchOptions(options: core.LaunchOptions): { valid: boolean; errors: string[] } {
 	const errors: string[] = [];
 
 	if (!options.MainExecutablePath && !options.LauncherPath) {

@@ -1,17 +1,17 @@
-package main
+package backend
 
 import (
-	"goproton/pkg/launcher"
+	"goproton/pkg/core"
 )
 
 func (a *App) ListPrefixes() ([]string, error) {
-	return launcher.ListPrefixes()
+	return core.ListPrefixes()
 }
 
 func (a *App) CreatePrefix(name string) error {
-	return launcher.CreatePrefix(name)
+	return core.CreatePrefix(name)
 }
 
 func (a *App) GetPrefixBaseDir() string {
-	return launcher.GetPrefixBaseDir()
+	return core.GetPrefixBaseDir()
 }

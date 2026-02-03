@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"goproton/pkg/launcher"
+	"goproton/pkg/core"
 	"goproton/pkg/lsfg_utils"
 
 	"github.com/getlantern/systray"
@@ -44,7 +44,7 @@ func onReady(logPath string) {
 
 	// Start game
 	opts := buildLaunchOptions()
-	cmdArgs, env := launcher.BuildCommand(opts)
+	cmdArgs, env := core.BuildCommand(opts)
 
 	logGameStartup(cmdArgs)
 
@@ -65,7 +65,7 @@ func onReady(logPath string) {
 	killGame := func() {
 		if gameCmd.Process != nil {
 			log.Println("Stopping game process group...")
-			launcher.StopProcessGroup(gameCmd.Process)
+			core.StopProcessGroup(gameCmd.Process)
 		}
 	}
 
@@ -138,16 +138,16 @@ func setupLsfgMenu() {
 	}()
 }
 
-// launchLsfgUI launches the goproton-ui in LSFG edit mode
+// launchLsfgUI launches the goproton in LSFG edit mode
 func launchLsfgUI() {
-	uiBinary := "goproton-ui"
+	uiBinary := "goproton"
 
 	// Try to find local UI binary first
 	if exePath, err := os.Executable(); err == nil {
-		localBinary := filepath.Join(filepath.Dir(exePath), "goproton-ui")
+		localBinary := filepath.Join(filepath.Dir(exePath), "goproton")
 		if _, err := os.Stat(localBinary); err == nil {
 			uiBinary = localBinary
-			log.Printf("Found local goproton-ui binary: %s", localBinary)
+			log.Printf("Found local goproton binary: %s", localBinary)
 		}
 	}
 
@@ -158,7 +158,7 @@ func launchLsfgUI() {
 	uiCmd.Env = env
 	uiCmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
-	log.Printf("Launching goproton-ui with GOPROTON_GAME_PATH=%s and GOPROTON_EDIT_LSFG=1", gamePath)
+	log.Printf("Launching goproton with GOPROTON_GAME_PATH=%s and GOPROTON_EDIT_LSFG=1", gamePath)
 
 	if err := uiCmd.Start(); err != nil {
 		sendNotification("LSFG-VK Config", fmt.Sprintf("Failed to launch UI: %v", err))

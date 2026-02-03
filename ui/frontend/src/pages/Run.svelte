@@ -13,8 +13,8 @@
 		GetInitialLauncherPath,
 		DetectLosslessDll,
 		GetExeIcon,
-	} from "../../wailsjs/go/main/App";
-	import type { launcher } from "../../wailsjs/go/models";
+	} from "../../wailsjs/go/backend/App";
+	import type { core } from "../../wailsjs/go/models";
 	import Dropdown from "../components/Dropdown.svelte";
 	import ConfigForm from "../components/ConfigForm.svelte";
 	import SlideButton from "../components/SlideButton.svelte";
@@ -43,7 +43,7 @@
 	let availablePrefixes: string[] = [];
 
 	// Proton
-	let protonVersions: launcher.ProtonTool[] = [];
+	let protonVersions: core.ProtonTool[] = [];
 	let protonOptions: string[] = [];
 	let selectedProton = "";
 	let isLoadingProton = true;
@@ -58,10 +58,10 @@
 	let showLogsWindow = false;
 	let showValidationModal = false;
 	let missingToolsList: string[] = [];
-	let systemStatus: launcher.SystemToolsStatus = { hasGamescope: false, hasMangoHud: false, hasGameMode: false };
+	let systemStatus: core.SystemToolsStatus = { hasGamescope: false, hasMangoHud: false, hasGameMode: false };
 
 	// Config
-	let options: launcher.LaunchOptions = createLaunchOptions();
+	let options: core.LaunchOptions = createLaunchOptions();
 
 	async function loadConfigForGame(path: string) {
 		try {
@@ -114,7 +114,7 @@
 		} catch (err) {}
 	}
 
-	function applyConfigToOptions(config: launcher.LaunchOptions) {
+	function applyConfigToOptions(config: core.LaunchOptions) {
 		const match = protonVersions.find((p) => p.Path === config.ProtonPath);
 		if (match) {
 			selectedProton = match.DisplayName;

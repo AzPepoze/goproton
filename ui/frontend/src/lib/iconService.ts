@@ -1,4 +1,4 @@
-import { GetExeIcon } from "../../wailsjs/go/main/App";
+import { GetExeIcon } from "../../wailsjs/go/backend/App";
 
 /**
  * Loads an executable icon asynchronously

@@ -3,12 +3,12 @@
 	import Modal from "./Modal.svelte";
 	import RangeSlider from "./RangeSlider.svelte";
 	import LsfgConfigForm from "./LsfgConfigForm.svelte";
-	import { PickFileCustom, GetTotalRam } from "../../wailsjs/go/main/App";
-	import type { launcher } from "../../wailsjs/go/models";
+	import { PickFileCustom, GetTotalRam } from "../../wailsjs/go/backend/App";
+	import type { core } from "../../wailsjs/go/models";
 	import { onMount } from "svelte";
 	import { loadLsfgResources, parseMemoryValue } from "../lib/formService";
 
-	export let options: launcher.LaunchOptions;
+	export let options: core.LaunchOptions;
 	let showLsfgModal = false;
 	let showGamescopeModal = false;
 	let showMemoryModal = false;

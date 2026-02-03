@@ -1,6 +1,6 @@
-import type { launcher } from "../../wailsjs/go/models";
+import type { core } from "../../wailsjs/go/models";
 
-export const DEFAULT_LAUNCH_OPTIONS: launcher.LaunchOptions = {
+export const DEFAULT_LAUNCH_OPTIONS: core.LaunchOptions = {
 	MainExecutablePath: "",
 	LauncherPath: "",
 	HaveGameExe: false,
@@ -26,7 +26,7 @@ export const DEFAULT_LAUNCH_OPTIONS: launcher.LaunchOptions = {
 	MemoryMinValue: "4G",
 };
 
-export const LSFG_DEFAULT_OPTIONS: Partial<launcher.LaunchOptions> = {
+export const LSFG_DEFAULT_OPTIONS: Partial<core.LaunchOptions> = {
 	LsfgMultiplier: "2",
 	LsfgPerfMode: false,
 	LsfgDllPath: "",

@@ -1,5 +1,5 @@
 import { writable } from "svelte/store";
-import type { launcher } from "../../wailsjs/go/models";
+import type { core } from "../../wailsjs/go/models";
 import { DEFAULT_LAUNCH_OPTIONS } from "../lib/constants";
 
 export interface RunState {
@@ -9,7 +9,7 @@ export interface RunState {
 	prefixPath: string;
 	selectedPrefixName: string;
 	selectedProton: string;
-	options: launcher.LaunchOptions;
+	options: core.LaunchOptions;
 }
 
 const initial: RunState = {

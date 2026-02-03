@@ -1,4 +1,4 @@
-package main
+package backend
 
 import (
 	"fmt"
@@ -8,53 +8,42 @@ import (
 	"strconv"
 	"strings"
 
-	"goproton/pkg/launcher"
+	"goproton/pkg/core"
 	"goproton/pkg/lsfg_utils"
 )
 
-func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
-	// DEBUG: Log what was received from frontend - write to file
-	launcher.DebugLog("[APP.RunGame] Called with options:")
-	launcher.DebugLog("[APP.RunGame]   LauncherPath: " + opts.LauncherPath)
-	launcher.DebugLog("[APP.RunGame]   MainExecutablePath: " + opts.MainExecutablePath)
-	launcher.DebugLog("[APP.RunGame]   HaveGameExe: " + fmt.Sprintf("%v", opts.HaveGameExe))
-	launcher.DebugLog("[APP.RunGame]   EnableLsfgVk: " + fmt.Sprintf("%v", opts.EnableLsfgVk))
-	launcher.DebugLog("[APP.RunGame] Full opts: " + fmt.Sprintf("%+v", opts))
+func (a *App) RunGame(opts core.LaunchOptions, showLogs bool) error {
+	core.DebugLog("[APP.RunGame] Called with options:")
+	core.DebugLog("[APP.RunGame]   LauncherPath: " + opts.LauncherPath)
+	core.DebugLog("[APP.RunGame]   MainExecutablePath: " + opts.MainExecutablePath)
+	core.DebugLog("[APP.RunGame]   HaveGameExe: " + fmt.Sprintf("%v", opts.HaveGameExe))
+	core.DebugLog("[APP.RunGame]   EnableLsfgVk: " + fmt.Sprintf("%v", opts.EnableLsfgVk))
+	core.DebugLog("[APP.RunGame] Full opts: " + fmt.Sprintf("%+v", opts))
 
-	// Pre-flight check: Does the game exist?
 	if _, err := os.Stat(opts.MainExecutablePath); os.IsNotExist(err) {
 		return fmt.Errorf("game executable not found at: %s", opts.MainExecutablePath)
 	}
 
-	// CRITICAL: Normalize options before saving to ensure consistency
-	// If HaveGameExe=false, MainExecutablePath MUST equal LauncherPath (launcher-only mode)
-	// If HaveGameExe=true, MainExecutablePath must be different from LauncherPath (separate game exe)
 	if !opts.HaveGameExe && opts.LauncherPath != "" {
-		launcher.DebugLog("[APP.RunGame] NORMALIZE: HaveGameExe=false, enforcing MainExecutablePath=LauncherPath")
+		core.DebugLog("[APP.RunGame] NORMALIZE: HaveGameExe=false, enforcing MainExecutablePath=LauncherPath")
 		opts.MainExecutablePath = opts.LauncherPath
 	}
 
-	// Auto-save config when launching
-	_ = launcher.SaveGameConfig(opts)
+	_ = core.SaveGameConfig(opts)
 
-	// If LSFG-VK enabled, ensure profile exists in config
 	if opts.EnableLsfgVk {
-		launcher.DebugLog("[APP.RunGame] LSFG-VK enabled, ensuring profile exists")
+		core.DebugLog("[APP.RunGame] LSFG-VK enabled, ensuring profile exists")
 		configPath, err := lsfg_utils.GetConfigPath()
 		if err == nil {
-			// Check if profile exists
 			_, _, err := lsfg_utils.FindProfileForGameAtPath(opts.MainExecutablePath, configPath)
 			if err != nil {
-				// Profile doesn't exist, create it
-				launcher.DebugLog("[APP.RunGame] No profile found, creating one with current options")
-
-				// If GPU is blank, use the first available GPU
+				core.DebugLog("[APP.RunGame] No profile found, creating one with current options")
 				gpu := opts.LsfgGpu
 				if gpu == "" {
-					gpuList := launcher.GetListGpus()
+					gpuList := core.GetListGpus()
 					if len(gpuList) > 0 {
 						gpu = gpuList[0]
-						launcher.DebugLog("[APP.RunGame] GPU was blank, using first GPU: " + gpu)
+						core.DebugLog("[APP.RunGame] GPU was blank, using first GPU: " + gpu)
 					}
 				}
 
@@ -71,23 +60,20 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 	}
 
 	instanceName := "goproton-instance"
-
-	// Try to find the binary relative to the current UI executable
 	exeDir := "."
 	if exe, err := os.Executable(); err == nil {
 		exeDir = filepath.Dir(exe)
 	}
 
 	potentialPaths := []string{
-		filepath.Join(exeDir, instanceName),                 // Same dir as UI
-		filepath.Join(exeDir, "../../../bin", instanceName), // Dev mode: ui/build/bin -> root/bin
-		"./bin/" + instanceName,                             // Current dir/bin
-		"./" + instanceName,                                 // Current dir
-		"/usr/bin/" + instanceName,                          // System installed (fallback)
+		filepath.Join(exeDir, instanceName),
+		filepath.Join(exeDir, "../../../bin", instanceName),
+		"./bin/" + instanceName,
+		"./" + instanceName,
+		"/usr/bin/" + instanceName,
 	}
 
 	foundPath := ""
-
 	for _, p := range potentialPaths {
 		if _, err := os.Stat(p); err == nil {
 			foundPath = p
@@ -96,7 +82,7 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 	}
 
 	if foundPath == "" {
-		return fmt.Errorf("instance manager (%s) not found. Checked: %v. Please run 'make build' first", instanceName, potentialPaths)
+		return fmt.Errorf("instance manager not found")
 	}
 
 	args := []string{
@@ -137,11 +123,9 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 	if !showLogs {
 		args = append(args, "--logs=false")
 	}
-	cmd := exec.Command(foundPath, args...)
 
-	// Start Detached
+	cmd := exec.Command(foundPath, args...)
 	if err := cmd.Start(); err != nil {
-		fmt.Printf("!!! CRITICAL ERROR: Failed to start instance binary (%s): %v\n", foundPath, err)
 		return fmt.Errorf("failed to start instance manager: %w", err)
 	}
 	go cmd.Process.Release()
@@ -150,7 +134,7 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 }
 
 func (a *App) GetAllGames() ([]GameInfo, error) {
-	configs, err := launcher.ListGameConfigs()
+	configs, err := core.ListGameConfigs()
 	if err != nil {
 		return nil, err
 	}
@@ -158,10 +142,8 @@ func (a *App) GetAllGames() ([]GameInfo, error) {
 	games := make([]GameInfo, 0)
 	for _, cfg := range configs {
 		name := filepath.Base(cfg.MainExecutablePath)
-		// Strip extension
 		name = strings.TrimSuffix(name, filepath.Ext(name))
 
-		// Clean path for comparison
 		cleanedPath := filepath.Clean(cfg.MainExecutablePath)
 		if abs, err := filepath.Abs(cleanedPath); err == nil {
 			cleanedPath = abs
@@ -177,11 +159,9 @@ func (a *App) GetAllGames() ([]GameInfo, error) {
 }
 
 func (a *App) GetRunningSessions() ([]RunningSession, error) {
-	// Use pgrep to find goproton-instance processes
-	// Try full name first
 	out, _ := exec.Command("pgrep", "goproton-instance").Output()
 	if len(out) == 0 {
-		out, _ = exec.Command("pgrep", "goproton-instan").Output() // Fallback to truncated
+		out, _ = exec.Command("pgrep", "goproton-instan").Output()
 	}
 
 	pids := strings.Split(strings.TrimSpace(string(out)), "\n")
@@ -196,14 +176,12 @@ func (a *App) GetRunningSessions() ([]RunningSession, error) {
 			continue
 		}
 
-		// Read /proc/[pid]/cmdline for robust argument parsing
 		cmdlinePath := fmt.Sprintf("/proc/%d/cmdline", pid)
 		content, err := os.ReadFile(cmdlinePath)
 		if err != nil {
 			continue
 		}
 
-		// cmdline uses null bytes to separate arguments
 		args := strings.Split(string(content), "\x00")
 		gamePath := ""
 		for i, arg := range args {
@@ -217,7 +195,6 @@ func (a *App) GetRunningSessions() ([]RunningSession, error) {
 			name := filepath.Base(gamePath)
 			name = strings.TrimSuffix(name, filepath.Ext(name))
 
-			// Clean path for comparison
 			cleanedPath := filepath.Clean(gamePath)
 			if abs, err := filepath.Abs(cleanedPath); err == nil {
 				cleanedPath = abs
@@ -238,39 +215,38 @@ func (a *App) KillSession(pid int) error {
 	if err != nil {
 		return err
 	}
-	return process.Signal(os.Interrupt) // Try SIGINT first for clean exit
+	return process.Signal(os.Interrupt)
 }
 
 func (a *App) RunPrefixTool(prefixPath, toolName, protonPattern string) error {
-	opts := launcher.LaunchOptions{
+	opts := core.LaunchOptions{
 		MainExecutablePath: toolName,
 		PrefixPath:         prefixPath,
 		ProtonPattern:      protonPattern,
 	}
-	cmdArgs, env := launcher.BuildCommand(opts)
+	cmdArgs, env := core.BuildCommand(opts)
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	cmd.Env = env
 	return cmd.Start()
 }
 
-func (a *App) GetConfig(exePath string) (*launcher.LaunchOptions, error) {
-	return launcher.LoadGameConfig(exePath)
+func (a *App) GetConfig(exePath string) (*core.LaunchOptions, error) {
+	return core.LoadGameConfig(exePath)
 }
 
-func (a *App) SavePrefixConfig(prefixName string, opts launcher.LaunchOptions) error {
-	return launcher.SavePrefixConfig(prefixName, opts)
+func (a *App) SavePrefixConfig(prefixName string, opts core.LaunchOptions) error {
+	return core.SavePrefixConfig(prefixName, opts)
 }
 
-func (a *App) LoadPrefixConfig(prefixName string) (*launcher.LaunchOptions, error) {
-	return launcher.LoadPrefixConfig(prefixName)
+func (a *App) LoadPrefixConfig(prefixName string) (*core.LaunchOptions, error) {
+	return core.LoadPrefixConfig(prefixName)
 }
 
-// parseMultiplier converts a string multiplier to int
 func parseMultiplier(mult string) int {
 	var val int = 2
 	if mult != "" {
 		if _, err := fmt.Sscanf(mult, "%d", &val); err != nil {
-			val = 2 // default
+			val = 2
 		}
 	}
 	return val

@@ -60,6 +60,9 @@
 		gap: 16px;
 		transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 		position: relative;
+		max-width: 180px;
+		width: 100%;
+		margin: 0 auto;
 
 		&:hover {
 			transform: scale(1.05);

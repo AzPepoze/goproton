@@ -1,4 +1,4 @@
-package launcher
+package core
 
 import (
 	"crypto/sha1"

@@ -1,4 +1,4 @@
-package main
+package backend
 
 import (
 	"os/exec"
@@ -8,7 +8,6 @@ import (
 )
 
 func (a *App) runSystemPicker(title string, folder bool, filters []runtime.FileFilter) (string, bool) {
-	// Try zenity
 	if _, err := exec.LookPath("zenity"); err == nil {
 		args := []string{"--file-selection", "--title=" + title}
 		if folder {
@@ -16,7 +15,6 @@ func (a *App) runSystemPicker(title string, folder bool, filters []runtime.FileF
 		}
 		if len(filters) > 0 {
 			for _, f := range filters {
-				// Zenity uses "Name | pattern1 pattern2"
 				pattern := strings.ReplaceAll(f.Pattern, ";", " ")
 				args = append(args, "--file-filter="+f.DisplayName+"|"+pattern)
 			}
@@ -26,13 +24,11 @@ func (a *App) runSystemPicker(title string, folder bool, filters []runtime.FileF
 		if err == nil {
 			return strings.TrimSpace(string(output)), true
 		}
-		// Code 1 means cancel
 		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
 			return "", true
 		}
 	}
 
-	// Try kdialog
 	if _, err := exec.LookPath("kdialog"); err == nil {
 		var args []string
 		if folder {
@@ -89,7 +85,6 @@ func (a *App) PickFolder() (string, error) {
 	})
 }
 
-// PickFileCustom opens a file dialog with custom filters
 func (a *App) PickFileCustom(title string, filters []runtime.FileFilter) (string, error) {
 	if path, ok := a.runSystemPicker(title, false, filters); ok {
 		return path, nil

@@ -52,7 +52,6 @@ package() {
 	# Install binaries
 	install -Dm755 bin/goproton "$pkgdir/usr/bin/goproton"
 	install -Dm755 bin/goproton-instance "$pkgdir/usr/bin/goproton-instance"
-	install -Dm755 bin/goproton-ui "$pkgdir/usr/bin/goproton-ui"
 	
 	# Install desktop file
 	install -Dm644 install/goproton.desktop "$pkgdir/usr/share/applications/goproton.desktop"

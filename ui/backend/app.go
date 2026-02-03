@@ -1,4 +1,4 @@
-package main
+package backend
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"goproton/pkg/launcher"
+	"goproton/pkg/core"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -25,11 +25,11 @@ type LsfgProfileData struct {
 }
 
 type GameInfo struct {
-	Name     string                 `json:"name"`
-	Path     string                 `json:"path"`
-	Icon     string                 `json:"icon"`
-	Config   launcher.LaunchOptions `json:"config"`
-	IsRecent bool                   `json:"isRecent"`
+	Name     string             `json:"name"`
+	Path     string             `json:"path"`
+	Icon     string             `json:"icon"`
+	Config   core.LaunchOptions `json:"config"`
+	IsRecent bool               `json:"isRecent"`
 }
 
 type RunningSession struct {
@@ -46,28 +46,24 @@ func NewApp() *App {
 	return &App{}
 }
 
-func (a *App) startup(ctx context.Context) {
+func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
 func (a *App) GetInitialLauncherPath() string {
-	path := os.Getenv("GOPROTON_LAUNCHER_PATH")
-	return path
+	return os.Getenv("GOPROTON_LAUNCHER_PATH")
 }
 
 func (a *App) GetInitialGamePath() string {
-	path := os.Getenv("GOPROTON_GAME_PATH")
-	return path
+	return os.Getenv("GOPROTON_GAME_PATH")
 }
 
 func (a *App) GetShouldEditLsfg() bool {
-	shouldEdit := os.Getenv("GOPROTON_EDIT_LSFG")
-	return shouldEdit == "1"
+	return os.Getenv("GOPROTON_EDIT_LSFG") == "1"
 }
 
 func (a *App) CloseWindow() {
 	runtime.Quit(a.ctx)
-	// Kill the process to ensure it doesn't stay running
 	os.Exit(0)
 }
 
@@ -82,7 +78,6 @@ func (a *App) GetExeIcon(exePath string) string {
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Try using wrestool first
 	cmd := exec.Command("wrestool", "-x", "--output="+tempDir, exePath)
 	if err := cmd.Run(); err == nil {
 		matches, _ := filepath.Glob(filepath.Join(tempDir, "*.ico"))
@@ -91,15 +86,11 @@ func (a *App) GetExeIcon(exePath string) string {
 		}
 	}
 
-	// Fallback: try icoextract
 	cmd = exec.Command("icoextract", exePath, filepath.Join(tempDir, "icon.ico"))
 	if err := cmd.Run(); err == nil {
-		icoPath := filepath.Join(tempDir, "icon.ico")
-		if icon := tryReadIcon(icoPath); icon != "" {
+		if icon := tryReadIcon(filepath.Join(tempDir, "icon.ico")); icon != "" {
 			return icon
 		}
-
-		// Check for alternative names
 		matches, _ := filepath.Glob(filepath.Join(tempDir, "*.ico"))
 		if len(matches) > 0 {
 			return tryReadIcon(matches[0])
@@ -117,8 +108,24 @@ func tryReadIcon(icoPath string) string {
 	return "data:image/x-icon;base64," + base64.StdEncoding.EncodeToString(data)
 }
 
-func (a *App) GetSystemToolsStatus() launcher.SystemToolsStatus {
-	return launcher.GetSystemToolsStatus()
+func (a *App) GetSystemToolsStatus() core.SystemToolsStatus {
+	return core.GetSystemToolsStatus()
+}
+
+func (a *App) GetSystemInfo() core.SystemInfo {
+	return core.GetSystemInfo()
+}
+
+func (a *App) GetSystemUsage() core.SystemUsage {
+	return core.GetSystemUsage()
+}
+
+func (a *App) GetShaderCacheSize() string {
+	return core.GetShaderCacheSize()
+}
+
+func (a *App) ClearShaderCache() error {
+	return core.ClearShaderCache()
 }
 
 func (a *App) CleanupProcesses() error {
@@ -131,13 +138,11 @@ func (a *App) CleanupProcesses() error {
 		"reaper",
 	}
 	for _, cmd := range commands {
-		// Use standard pkill (SIGTERM) to allow clean exit
 		_ = exec.Command("pkill", "-f", cmd).Run()
 	}
 	return nil
 }
 
-// GetTotalRam returns the total system RAM in GB
 func (a *App) GetTotalRam() (int, error) {
 	file, err := os.Open("/proc/meminfo")
 	if err != nil {
@@ -146,7 +151,6 @@ func (a *App) GetTotalRam() (int, error) {
 	defer file.Close()
 
 	var memTotalKb int
-	// Read line by line
 	var line string
 	for {
 		_, err := fmt.Fscanf(file, "%s %d kB\n", &line, &memTotalKb)
@@ -159,6 +163,5 @@ func (a *App) GetTotalRam() (int, error) {
 		return 0, fmt.Errorf("failed to parse MemTotal")
 	}
 
-	// Convert to GB
 	return memTotalKb / 1024 / 1024, nil
 }

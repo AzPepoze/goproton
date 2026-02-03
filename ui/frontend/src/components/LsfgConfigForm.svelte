@@ -2,11 +2,11 @@
 	import Dropdown from "./Dropdown.svelte";
 	import SlideButton from "./SlideButton.svelte";
 	import MultiplierInput from "./MultiplierInput.svelte";
-	import type { launcher } from "../../wailsjs/go/models";
+	import type { core } from "../../wailsjs/go/models";
 
 	import warningIcon from "../icons/warning.svg";
 
-	export let options: launcher.LaunchOptions;
+	export let options: core.LaunchOptions;
 	export let gpuList: string[] = [];
 	export let onDllBrowse: (() => void) | null = null;
 	export let compact: boolean = false; // For modal vs full-page mode

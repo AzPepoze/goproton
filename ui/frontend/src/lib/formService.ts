@@ -1,5 +1,5 @@
-import type { launcher } from "../../wailsjs/go/models";
-import { GetListGpus, DetectLosslessDll } from "../../wailsjs/go/main/App";
+import type { core } from "../../wailsjs/go/models";
+import { GetListGpus, DetectLosslessDll } from "../../wailsjs/go/backend/App";
 import { DEFAULT_LAUNCH_OPTIONS } from "./constants";
 
 export interface FormState<T> {
@@ -34,9 +34,9 @@ export function resetFormState<T>(state: FormState<T>, defaults: T): void {
  * Merges loaded data with existing options while preserving defaults
  */
 export function mergeOptions(
-	existing: launcher.LaunchOptions,
-	loaded: Partial<launcher.LaunchOptions>,
-): launcher.LaunchOptions {
+	existing: core.LaunchOptions,
+	loaded: Partial<core.LaunchOptions>,
+): core.LaunchOptions {
 	return {
 		...existing,
 		...loaded,
@@ -46,7 +46,7 @@ export function mergeOptions(
 /**
  * Initializes LaunchOptions with defaults
  */
-export function createLaunchOptions(overrides?: Partial<launcher.LaunchOptions>): launcher.LaunchOptions {
+export function createLaunchOptions(overrides?: Partial<core.LaunchOptions>): core.LaunchOptions {
 	return {
 		...DEFAULT_LAUNCH_OPTIONS,
 		...overrides,

@@ -6,15 +6,18 @@
 		UninstallLsfg,
 		GetSystemToolsStatus,
 		DetectLosslessDll,
-	} from "../../wailsjs/go/main/App";
+		GetShaderCacheSize,
+		ClearShaderCache,
+	} from "../../wailsjs/go/backend/App";
 	import { notifications } from "../notificationStore";
 	import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime";
-	import type { launcher } from "../../wailsjs/go/models";
+	import type { core } from "../../wailsjs/go/models";
 
 	import lsfgPng from "../icons/lsfg.png";
+	import trashIcon from "../icons/trash.svg";
 
-	let status: launcher.UtilsStatus = { isLsfgInstalled: false, lsfgVersion: "" };
-	let systemStatus: launcher.SystemToolsStatus & { hasLosslessDll: boolean } = {
+	let status: core.UtilsStatus = { isLsfgInstalled: false, lsfgVersion: "" };
+	let systemStatus: core.SystemToolsStatus & { hasLosslessDll: boolean } = {
 		hasGamescope: false,
 		hasMangoHud: false,
 		hasGameMode: false,
@@ -24,16 +27,19 @@
 	let isUninstalling = false;
 	let progressMessage = "";
 	let progressPercent = 0;
+	let shaderCacheSize = "Calculating...";
 
 	async function loadStatus() {
-		const [utilStatus, sysTools, dllPath] = await Promise.all([
+		const [utilStatus, sysTools, dllPath, cacheSize] = await Promise.all([
 			GetUtilsStatus(),
 			GetSystemToolsStatus(),
 			DetectLosslessDll(),
+			GetShaderCacheSize(),
 		]);
 
 		status = utilStatus;
 		systemStatus = { ...sysTools, hasLosslessDll: !!dllPath };
+		shaderCacheSize = cacheSize;
 	}
 
 	onMount(() => {
@@ -77,6 +83,16 @@
 			isUninstalling = false;
 		}
 	}
+
+	async function handleClearCache() {
+		try {
+			await ClearShaderCache();
+			shaderCacheSize = await GetShaderCacheSize();
+			notifications.add("Shader cache cleared!", "success");
+		} catch (err) {
+			notifications.add(`Failed to clear cache: ${err}`, "error");
+		}
+	}
 </script>
 
 <div class="utils-container">
@@ -115,6 +131,31 @@
 	</div>
 
 	<div class="utils-grid">
+		<!-- Shader Cache Card -->
+		<div class="util-card glass">
+			<div class="util-header">
+				<div class="icon-bg">
+					<img src={trashIcon} alt="trash" class="lsfg-logo" />
+				</div>
+				<div class="title-area">
+					<h3>Shader Cache</h3>
+					<span class="badge">{shaderCacheSize}</span>
+				</div>
+			</div>
+			<div class="description">
+				<p>
+					Steam pre-compiles shaders for your games to improve performance. Over time, these files can
+					occupy significant disk space.
+				</p>
+				<p class="note">
+					Clearing cache might cause temporary stuttering in some games while shaders rebuild.
+				</p>
+			</div>
+			<div class="action-area">
+				<button class="btn secondary" on:click={handleClearCache}> Clear Shader Cache </button>
+			</div>
+		</div>
+
 		<!-- LSFG-VK Card -->
 		<div class="util-card glass">
 			<div class="util-header">
@@ -288,7 +329,7 @@
 			.lsfg-logo {
 				width: 32px;
 				height: 32px;
-				filter: grayscale(100%) brightness(1.5);
+				filter: brightness(0) invert(1);
 				opacity: 0.9;
 				object-fit: contain;
 			}
