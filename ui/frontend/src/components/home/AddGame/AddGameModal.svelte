@@ -256,13 +256,14 @@
 			border-bottom: none !important;
 			background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 0%, transparent 100%) !important;
 
-			h3 {
+			:global(h3) {
 				font-size: 1.6rem !important;
 				font-weight: 900 !important;
 				letter-spacing: -1px !important;
 				text-transform: uppercase !important;
 				background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
 				-webkit-background-clip: text;
+				background-clip: text;
 				-webkit-text-fill-color: transparent;
 			}
 		}

@@ -14,16 +14,18 @@ import (
 
 // GitHubRelease represents the structure of a release from GitHub API
 type GitHubRelease struct {
-	Tag         string `json:"tag_name"`
-	Name        string `json:"name"`
-	PublishedAt string `json:"published_at"`
-	HtmlUrl     string `json:"html_url"`
-	Assets      []struct {
-		Name               string `json:"name"`
-		BrowserDownloadUrl string `json:"browser_download_url"`
-		Size               int64  `json:"size"`
-		ContentType        string `json:"content_type"`
-	} `json:"assets"`
+	Tag         string        `json:"tag_name"`
+	Name        string        `json:"name"`
+	PublishedAt string        `json:"published_at"`
+	HtmlUrl     string        `json:"html_url"`
+	Assets      []GitHubAsset `json:"assets"`
+}
+
+type GitHubAsset struct {
+	Name               string `json:"name"`
+	BrowserDownloadUrl string `json:"browser_download_url"`
+	Size               int64  `json:"size"`
+	ContentType        string `json:"content_type"`
 }
 
 type ProtonVariant struct {

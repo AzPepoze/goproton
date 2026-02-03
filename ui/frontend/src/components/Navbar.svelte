@@ -82,6 +82,8 @@
 		align-items: center;
 		gap: 4px;
 		user-select: none;
+		position: absolute;
+		top: 50px;
 
 		span {
 			font-size: 0.75rem;
@@ -95,11 +97,11 @@
 	@keyframes char-wave {
 		0%,
 		100% {
-			transform: scale(1);
+			transform: scale(0.8);
 			color: rgba(255, 255, 255, 0.4);
 		}
 		50% {
-			transform: scale(1.3);
+			transform: scale(1);
 			color: #fff;
 			text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 		}
