@@ -76,9 +76,9 @@ export namespace launcher {
 		}
 	}
 	export class LaunchOptions {
-	    GamePath: string;
+	    MainExecutablePath: string;
 	    LauncherPath: string;
-	    UseGameExe: boolean;
+	    HaveGameExe: boolean;
 	    PrefixPath: string;
 	    ProtonPattern: string;
 	    ProtonPath: string;
@@ -106,9 +106,9 @@ export namespace launcher {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.GamePath = source["GamePath"];
+	        this.MainExecutablePath = source["MainExecutablePath"];
 	        this.LauncherPath = source["LauncherPath"];
-	        this.UseGameExe = source["UseGameExe"];
+	        this.HaveGameExe = source["HaveGameExe"];
 	        this.PrefixPath = source["PrefixPath"];
 	        this.ProtonPattern = source["ProtonPattern"];
 	        this.ProtonPath = source["ProtonPath"];

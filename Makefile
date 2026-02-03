@@ -8,7 +8,7 @@ WAILS_BIN=$(shell go env GOPATH)/bin/wails
 build: build-instance build-ui build-wrapper
 
 build-instance:
-	go build -o $(BIN_DIR)/$(INSTANCE_BIN) cmd/instance/main.go
+	go build -o $(BIN_DIR)/$(INSTANCE_BIN) cmd/instance/*.go
 
 build-ui: generate-bindings
 	cd $(PROJECT_DIR) && $(WAILS_BIN) build
@@ -18,9 +18,9 @@ generate-bindings:
 	cd $(PROJECT_DIR) && $(WAILS_BIN) generate bindings
 
 build-wrapper:
-	go build -o $(BIN_DIR)/$(BINARY_NAME) cmd/goproton/main.go
+	go build -o $(BIN_DIR)/$(BINARY_NAME) cmd/goproton/*.go
 
-run: build
+dev: build
 	cd $(PROJECT_DIR) && $(WAILS_BIN) dev
 
 clean:

@@ -2,42 +2,19 @@
 	import Modal from "../components/Modal.svelte";
 	import LsfgConfigForm from "../components/LsfgConfigForm.svelte";
 	import {
-		GetListGpus,
 		GetLsfgProfileForGame,
 		GetInitialGamePath,
 		SaveLsfgProfile,
-		DetectLosslessDll,
 		CloseWindow,
 		PickFileCustom,
 	} from "../../wailsjs/go/main/App";
 	import type { launcher } from "../../wailsjs/go/models";
 	import { onMount } from "svelte";
+	import { loadLsfgResources, createLaunchOptions } from "../lib/formService";
 
-	let options: launcher.LaunchOptions = {
-		GamePath: "",
-		LauncherPath: "",
-		UseGameExe: true,
-		PrefixPath: "",
-		ProtonPattern: "",
-		ProtonPath: "",
-		CustomArgs: "",
-		EnableGamescope: false,
-		GamescopeW: "1920",
-		GamescopeH: "1080",
-		GamescopeR: "60",
-		EnableMangoHud: false,
-		EnableGamemode: false,
-		EnableLsfgVk: true,
-		LsfgMultiplier: "2",
-		LsfgPerfMode: false,
-		LsfgDllPath: "",
-		LsfgGpu: "",
-		LsfgFlowScale: "0.8",
-		LsfgPacing: "none",
-		LsfgAllowFp16: false,
-		EnableMemoryMin: false,
-		MemoryMinValue: "4G",
-	};
+	export let gamePath = "";
+
+	let options: launcher.LaunchOptions = createLaunchOptions();
 
 	let loading = true;
 	let error = "";
@@ -48,7 +25,7 @@
 
 	onMount(async () => {
 		try {
-			const currentGamePath = await GetInitialGamePath();
+			const currentGamePath = gamePath || (await GetInitialGamePath());
 
 			if (!currentGamePath) {
 				error = "No game path provided";
@@ -56,7 +33,7 @@
 				return;
 			}
 
-			options.GamePath = currentGamePath;
+			options.MainExecutablePath = currentGamePath;
 
 			// Load profile data
 			const data = await GetLsfgProfileForGame(currentGamePath);
@@ -70,27 +47,14 @@
 				options.LsfgAllowFp16 = data.allowFp16 || false;
 			}
 
-			// Auto-detect DLL if not set
-			if (!options.LsfgDllPath) {
-				try {
-					const detected = await DetectLosslessDll();
-					if (detected) {
-						options.LsfgDllPath = detected;
-						console.log("Auto-detected DLL:", detected);
-					}
-				} catch (e) {
-					console.error("Failed to detect DLL:", e);
-				}
+			// Auto-detect DLL and load GPUs
+			const { gpus, dll } = await loadLsfgResources();
+			if (dll && !options.LsfgDllPath) {
+				options.LsfgDllPath = dll;
+				console.log("Auto-detected DLL:", dll);
 			}
-
-			// Load available GPUs
-			try {
-				const gpus = await GetListGpus();
-				if (gpus && gpus.length > 0) {
-					gpuList = gpus;
-				}
-			} catch (e) {
-				console.error("Failed to detect GPUs:", e);
+			if (gpus && gpus.length > 0) {
+				gpuList = gpus;
 			}
 
 			loading = false;
@@ -107,7 +71,7 @@
 
 		try {
 			await SaveLsfgProfile(
-				options.GamePath,
+				options.MainExecutablePath,
 				parseInt(options.LsfgMultiplier) || 2,
 				options.LsfgPerfMode,
 				options.LsfgDllPath,
@@ -163,7 +127,7 @@
 	<Modal show={true} title="LSFG-VK Configuration" onClose={handleClose} fullscreen={true}>
 		<div class="modal-content">
 			<div class="profile-info">
-				<p class="game-path">{options.GamePath}</p>
+				<p class="game-path">{options.MainExecutablePath}</p>
 			</div>
 
 			<LsfgConfigForm {options} {gpuList} onDllBrowse={handleBrowseDll} />
@@ -204,7 +168,6 @@
 	}
 
 	.modal-content {
-		max-width: 800px;
 		margin: 0 auto;
 	}
 

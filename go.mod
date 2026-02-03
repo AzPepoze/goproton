@@ -1,4 +1,4 @@
-module go-proton
+module goproton
 
 go 1.25.6
 

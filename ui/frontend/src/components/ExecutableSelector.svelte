@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { GetExeIcon } from "../../wailsjs/go/main/App";
+	import { loadExeIcon } from "../lib/iconService";
 	import SlideButton from "./SlideButton.svelte";
 
 	export let launcherPath = "";
-	export let gamePath = "";
-	export let useGameExe = false;
+	export let mainExePath = "";
+	export let haveGameExe = false;
 	export let launcherIcon = "";
 	export let gameIcon = "";
 	export let onBrowseLauncher: () => Promise<void>;
@@ -13,11 +13,11 @@
 	let launcherIconFailed = false;
 	let gameIconFailed = false;
 	let prevLauncherPath = "";
-	let prevGamePath = "";
+	let prevMainExePath = "";
 
 	// Internal state for inputs - keep in sync with props
 	let internalLauncherPath = launcherPath;
-	let internalGamePath = gamePath;
+	let internalMainExePath = mainExePath;
 
 	// When props change, update internal state
 	$: if (launcherPath !== internalLauncherPath) {
@@ -25,9 +25,9 @@
 		internalLauncherPath = launcherPath;
 	}
 
-	$: if (gamePath !== internalGamePath) {
-		console.log("ExecutableSelector: gamePath prop changed to:", gamePath);
-		internalGamePath = gamePath;
+	$: if (mainExePath !== internalMainExePath) {
+		console.log("ExecutableSelector: mainExePath prop changed to:", mainExePath);
+		internalMainExePath = mainExePath;
 	}
 
 	// Load launcher icon when launcher path changes
@@ -35,37 +35,27 @@
 		prevLauncherPath = internalLauncherPath;
 		launcherIconFailed = false;
 		(async () => {
-			try {
-				const icon = await GetExeIcon(internalLauncherPath);
-				if (icon) {
-					launcherIcon = icon;
-					launcherIconFailed = false;
-				} else {
-					launcherIconFailed = true;
-				}
-			} catch (err) {
-				console.error("Failed to get launcher icon:", err);
+			const icon = await loadExeIcon(internalLauncherPath);
+			if (icon) {
+				launcherIcon = icon;
+				launcherIconFailed = false;
+			} else {
 				launcherIconFailed = true;
 			}
 		})();
 	}
 
 	// Reload game icon when game path changes
-	$: if (internalGamePath && internalGamePath !== prevGamePath) {
-		prevGamePath = internalGamePath;
+	$: if (internalMainExePath && internalMainExePath !== prevMainExePath) {
+		prevMainExePath = internalMainExePath;
 		gameIconFailed = false;
-		if (useGameExe) {
+		if (haveGameExe) {
 			(async () => {
-				try {
-					const icon = await GetExeIcon(internalGamePath);
-					if (icon) {
-						gameIcon = icon;
-						gameIconFailed = false;
-					} else {
-						gameIconFailed = true;
-					}
-				} catch (err) {
-					console.error("Failed to get game icon:", err);
+				const icon = await loadExeIcon(internalMainExePath);
+				if (icon) {
+					gameIcon = icon;
+					gameIconFailed = false;
+				} else {
 					gameIconFailed = true;
 				}
 			})();
@@ -144,13 +134,13 @@
 
 	<!-- Game Executable Toggle -->
 	<SlideButton
-		bind:checked={useGameExe}
+		bind:checked={haveGameExe}
 		label="Use Game Exe (for LSFG-VK)"
 		subtitle="Configure different game exe for LSFG-VK profile"
 	/>
 
 	<!-- Game Executable Section (Conditional) -->
-	{#if useGameExe}
+	{#if haveGameExe}
 		<div class="game-exe-section">
 			<label for="gameExe">
 				Game Executable <span class="optional-tag">For LSFG-VK</span>
@@ -195,7 +185,7 @@
 					<input
 						id="gameExe"
 						type="text"
-						bind:value={internalGamePath}
+						bind:value={internalMainExePath}
 						placeholder="Select game .exe file..."
 						class="input"
 					/>

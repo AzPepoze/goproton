@@ -8,7 +8,7 @@
 	import EditLsfg from "./pages/EditLsfg.svelte";
 	import NotificationHost from "./components/NotificationHost.svelte";
 	import { fade, fly } from "svelte/transition";
-	import { GetInitialLauncherPath, GetShouldEditLsfg } from "../wailsjs/go/main/App";
+	import { GetInitialLauncherPath, GetInitialGamePath, GetShouldEditLsfg } from "../wailsjs/go/main/App";
 	import { onMount } from "svelte";
 	import { navigationCommand } from "./stores/navigationStore";
 	import { runState } from "./stores/runState";
@@ -21,9 +21,12 @@
 			const shouldEditLsfg = await GetShouldEditLsfg();
 			const launcherPath = await GetInitialLauncherPath();
 
-			if (shouldEditLsfg && launcherPath) {
-				editLsfgGamePath = launcherPath;
-				activePage = "editlsfg";
+			if (shouldEditLsfg) {
+				const gamePath = await GetInitialGamePath();
+				if (gamePath) {
+					editLsfgGamePath = gamePath;
+					activePage = "editlsfg";
+				}
 			} else if (launcherPath) {
 				runState.update((state) => ({
 					...state,

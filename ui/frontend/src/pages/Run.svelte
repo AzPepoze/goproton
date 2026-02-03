@@ -22,15 +22,15 @@
 	import ExecutableSelector from "../components/ExecutableSelector.svelte";
 	import { notifications } from "../notificationStore";
 	import { runState } from "../stores/runState";
-	import { navigateToEditLsfg } from "../stores/navigationStore";
 	import { get } from "svelte/store";
 	import { WindowHide } from "../../wailsjs/runtime/runtime";
+	import { createLaunchOptions } from "../lib/formService";
 
 	// Component State
 	let mounted = false;
 
 	// Game Selection
-	let gamePath = "";
+	let mainExePath = "";
 	let gameIcon = "";
 	let launcherIcon = "";
 	let prefixPath = "";
@@ -46,6 +46,12 @@
 	let selectedProton = "";
 	let isLoadingProton = true;
 
+	// Game exe toggle state - keep in sync with options
+	let haveGameExe = false;
+
+	$: if (options) haveGameExe = options.HaveGameExe;
+	$: if (options) options.HaveGameExe = haveGameExe;
+
 	// UI State
 	let showLogsWindow = false;
 	let showValidationModal = false;
@@ -53,31 +59,7 @@
 	let systemStatus: launcher.SystemToolsStatus = { hasGamescope: false, hasMangoHud: false, hasGameMode: false };
 
 	// Config
-	let options: launcher.LaunchOptions = {
-		GamePath: "",
-		LauncherPath: "",
-		UseGameExe: false,
-		PrefixPath: "",
-		ProtonPattern: "",
-		ProtonPath: "",
-		CustomArgs: "",
-		EnableGamescope: false,
-		GamescopeW: "1920",
-		GamescopeH: "1080",
-		GamescopeR: "60",
-		EnableMangoHud: false,
-		EnableGamemode: false,
-		EnableLsfgVk: false,
-		LsfgMultiplier: "2",
-		LsfgPerfMode: false,
-		LsfgDllPath: "",
-		LsfgGpu: "",
-		LsfgFlowScale: "0.8",
-		LsfgPacing: "none",
-		LsfgAllowFp16: false,
-		EnableMemoryMin: false,
-		MemoryMinValue: "4G",
-	};
+	let options: launcher.LaunchOptions = createLaunchOptions();
 
 	async function loadConfigForGame(path: string) {
 		try {
@@ -113,10 +95,10 @@
 		try {
 			const config = await LoadPrefixConfig(name);
 			if (config) {
-				const savedGamePath = options.GamePath;
+				const savedMainExePath = options.MainExecutablePath;
 				const savedPrefixPath = options.PrefixPath;
 				applyConfigToOptions(config);
-				options.GamePath = savedGamePath;
+				options.MainExecutablePath = savedMainExePath;
 				if (savedPrefixPath) options.PrefixPath = savedPrefixPath;
 			}
 		} catch (err) {}
@@ -145,19 +127,21 @@
 		if (!options.LauncherPath && config.LauncherPath) {
 			options.LauncherPath = config.LauncherPath;
 		}
-		options.UseGameExe = config.UseGameExe === true; // Default to false (launcher-only)
+		options.HaveGameExe = config.HaveGameExe === true; // Default to false (launcher-only)
 
-		// CRITICAL: If UseGameExe is false, GamePath must equal LauncherPath (launcher-only mode)
-		// If UseGameExe is true, GamePath should be a separate game exe
-		if (!options.UseGameExe && options.LauncherPath) {
-			options.GamePath = options.LauncherPath;
-			console.log("[CONFIG] UseGameExe=false: enforcing GamePath=LauncherPath (launcher-only mode)");
-			console.log("[CONFIG]   GamePath set to:", options.LauncherPath);
-		} else if (options.UseGameExe && config.GamePath) {
-			// Only load GamePath from config if UseGameExe is true (separate game exe)
-			options.GamePath = config.GamePath;
-			console.log("[CONFIG] UseGameExe=true: loaded separate game exe from config");
-			console.log("[CONFIG]   GamePath set to:", config.GamePath);
+		// CRITICAL: If HaveGameExe is false, MainExecutablePath must equal LauncherPath (launcher-only mode)
+		// If HaveGameExe is true, MainExecutablePath should be a separate game exe
+		if (!options.HaveGameExe && options.LauncherPath) {
+			options.MainExecutablePath = options.LauncherPath;
+			console.log(
+				"[CONFIG] HaveGameExe=false: enforcing MainExecutablePath=LauncherPath (launcher-only mode)",
+			);
+			console.log("[CONFIG]   MainExecutablePath set to:", options.LauncherPath);
+		} else if (options.HaveGameExe && config.MainExecutablePath) {
+			// Only load MainExecutablePath from config if HaveGameExe is true (separate game exe)
+			options.MainExecutablePath = config.MainExecutablePath;
+			console.log("[CONFIG] HaveGameExe=true: loaded separate game exe from config");
+			console.log("[CONFIG]   MainExecutablePath set to:", config.MainExecutablePath);
 		}
 
 		options.EnableGamescope = config.EnableGamescope;
@@ -172,9 +156,9 @@
 		try {
 			const s = get(runState);
 			if (s) {
-				if (s.gamePath) {
-					gamePath = s.gamePath;
-					options.GamePath = s.gamePath;
+				if (s.mainExePath) {
+					mainExePath = s.mainExePath;
+					options.MainExecutablePath = s.mainExePath;
 				}
 				if (s.gameIcon) gameIcon = s.gameIcon;
 				if (s.launcherIcon) launcherIcon = s.launcherIcon;
@@ -197,15 +181,15 @@
 			const initialPath = await GetInitialLauncherPath();
 			if (initialPath) {
 				// Only set as game/launcher if not already set, or if explicitly passed from tray
-				if (!options.LauncherPath && !options.GamePath) {
+				if (!options.LauncherPath && !options.MainExecutablePath) {
 					// No prior state - set initial path as launcher
 					options.LauncherPath = initialPath;
 					const icon = await GetExeIcon(initialPath);
 					if (icon) launcherIcon = icon;
-				} else if (!options.GamePath || options.GamePath === options.LauncherPath) {
+				} else if (!options.MainExecutablePath || options.MainExecutablePath === options.LauncherPath) {
 					// Prior state has launcher but no game - set initial path as game
-					gamePath = initialPath;
-					options.GamePath = initialPath;
+					mainExePath = initialPath;
+					options.MainExecutablePath = initialPath;
 					const icon = await GetExeIcon(initialPath);
 					if (icon) gameIcon = icon;
 					await loadConfigForGame(initialPath);
@@ -217,8 +201,8 @@
 				const icon = await GetExeIcon(options.LauncherPath);
 				if (icon) launcherIcon = icon;
 			}
-			if (options.GamePath && !gameIcon) {
-				const icon = await GetExeIcon(options.GamePath);
+			if (options.MainExecutablePath && !gameIcon) {
+				const icon = await GetExeIcon(options.MainExecutablePath);
 				if (icon) gameIcon = icon;
 			}
 
@@ -253,7 +237,15 @@
 	});
 
 	$: if (mounted) {
-		runState.set({ gamePath, gameIcon, launcherIcon, prefixPath, selectedPrefixName, selectedProton, options });
+		runState.set({
+			mainExePath,
+			gameIcon,
+			launcherIcon,
+			prefixPath,
+			selectedPrefixName,
+			selectedProton,
+			options,
+		});
 	}
 
 	async function handlePrefixChange(name: string) {
@@ -270,10 +262,10 @@
 			if (path) {
 				console.log("[GAME] Selected game exe:", path);
 				console.log("[GAME] Current LauncherPath before game selection:", options.LauncherPath);
-				gamePath = path;
+				mainExePath = path;
 				// Use object spread to trigger Svelte reactivity
-				options = { ...options, GamePath: path };
-				console.log("[GAME] Set options.GamePath to:", options.GamePath);
+				options = { ...options, MainExecutablePath: path };
+				console.log("[GAME] Set options.MainExecutablePath to:", options.MainExecutablePath);
 				console.log("[GAME] LauncherPath after game selection:", options.LauncherPath);
 				console.log("[GAME] Full options object:", JSON.stringify(options));
 				// NOTE: Do NOT load config for game exe
@@ -294,22 +286,25 @@
 				console.log("[LAUNCHER] Set options.LauncherPath to:", options.LauncherPath);
 				console.log("[LAUNCHER] Full options object after assignment:", JSON.stringify(options));
 
-				// Only set GamePath if user has not explicitly selected a separate game exe
-				if (!gamePath) {
+				// Only set MainExecutablePath if user has not explicitly selected a separate game exe
+				if (!mainExePath) {
 					console.log(
-						"[LAUNCHER] No separate game exe selected by user, initializing GamePath to launcher",
+						"[LAUNCHER] No separate game exe selected by user, initializing MainExecutablePath to launcher",
 					);
-					options = { ...options, GamePath: path };
-					console.log("[LAUNCHER] Set GamePath to launcher path:", options.GamePath);
+					options = { ...options, MainExecutablePath: path };
+					console.log("[LAUNCHER] Set MainExecutablePath to launcher path:", options.MainExecutablePath);
 				} else {
-					console.log("[LAUNCHER] User already selected separate game exe, keeping GamePath:", gamePath);
+					console.log(
+						"[LAUNCHER] User already selected separate game exe, keeping MainExecutablePath:",
+						mainExePath,
+					);
 				}
 
 				// Load config for the launcher
 				// applyConfigToOptions will enforce UseGameExe if true
 				console.log("[LAUNCHER] Loading config for launcher path...");
 				await loadConfigForGame(path);
-				console.log("[LAUNCHER] Config loaded, final GamePath:", options.GamePath);
+				console.log("[LAUNCHER] Config loaded, final MainExecutablePath:", options.MainExecutablePath);
 			}
 		} catch (err) {
 			console.error("[LAUNCHER] Error selecting launcher:", err);
@@ -361,8 +356,8 @@
 		// DEBUG: Log state at execution time
 		console.log("[EXECUTE] Step 1 - Initial state");
 		console.log("[EXECUTE]   options.LauncherPath:", options.LauncherPath);
-		console.log("[EXECUTE]   options.GamePath:", options.GamePath);
-		console.log("[EXECUTE]   gamePath variable:", gamePath);
+		console.log("[EXECUTE]   options.MainExecutablePath:", options.MainExecutablePath);
+		console.log("[EXECUTE]   mainExePath variable:", mainExePath);
 		console.log("[EXECUTE]   Full options:", JSON.stringify(options));
 
 		const tool = protonVersions.find((p) => p.DisplayName === selectedProton);
@@ -372,7 +367,7 @@
 		}
 
 		// Config is ALWAYS saved to launcher path via SaveGameConfig backend logic
-		// GamePath remains the actual game executable to run
+		// MainExecutablePath remains the actual executable to run
 		// LauncherPath is provided to SaveGameConfig for config storage
 		options.PrefixPath = prefixPath;
 		options.ProtonPattern = cleanName;
@@ -384,7 +379,7 @@
 
 		try {
 			console.log("[EXECUTE] Calling RunGame with LauncherPath:", options.LauncherPath);
-			console.log("[EXECUTE] Calling RunGame with GamePath:", options.GamePath);
+			console.log("[EXECUTE] Calling RunGame with MainExecutablePath:", options.MainExecutablePath);
 			console.log("[EXECUTE] Calling RunGame with full options:", JSON.stringify(options, null, 2));
 			await RunGame(options, showLogsWindow);
 			WindowHide();
@@ -403,8 +398,8 @@
 	<!-- Executable Selector Component -->
 	<ExecutableSelector
 		launcherPath={options.LauncherPath}
-		gamePath={options.GamePath}
-		bind:useGameExe={options.UseGameExe}
+		mainExePath={options.MainExecutablePath}
+		bind:haveGameExe
 		bind:launcherIcon
 		bind:gameIcon
 		onBrowseLauncher={handleBrowseLauncher}
@@ -444,17 +439,6 @@
 		</div>
 
 		<ConfigForm bind:options />
-
-		{#if options.EnableLsfgVk && gamePath}
-			<div class="form-group">
-				<button class="btn primary" on:click={() => navigateToEditLsfg(gamePath)}>
-					Open Fullscreen LSFG-VK Editor
-				</button>
-				<p class="help-text" style="margin-top: 8px;">
-					For detailed LSFG-VK configuration and profile management
-				</p>
-			</div>
-		{/if}
 
 		<div class="form-group">
 			<SlideButton bind:checked={showLogsWindow} label="Show Logs" subtitle="Open logs in terminal" />
@@ -516,13 +500,6 @@
 		font-weight: 600;
 		color: var(--text-muted);
 		margin-bottom: 8px;
-	}
-	.form-group {
-		.help-text {
-			font-size: 0.75rem;
-			color: var(--text-dim);
-			margin: 8px 0 0 0;
-		}
 	}
 	.input-group {
 		display: flex;

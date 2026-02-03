@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"go-proton/pkg/launcher"
+	"goproton/pkg/launcher"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -112,22 +112,22 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 	// DEBUG: Log what was received from frontend - write to file
 	launcher.DebugLog("[APP.RunGame] Called with options:")
 	launcher.DebugLog("[APP.RunGame]   LauncherPath: " + opts.LauncherPath)
-	launcher.DebugLog("[APP.RunGame]   GamePath: " + opts.GamePath)
-	launcher.DebugLog("[APP.RunGame]   UseGameExe: " + fmt.Sprintf("%v", opts.UseGameExe))
+	launcher.DebugLog("[APP.RunGame]   MainExecutablePath: " + opts.MainExecutablePath)
+	launcher.DebugLog("[APP.RunGame]   HaveGameExe: " + fmt.Sprintf("%v", opts.HaveGameExe))
 	launcher.DebugLog("[APP.RunGame]   EnableLsfgVk: " + fmt.Sprintf("%v", opts.EnableLsfgVk))
 	launcher.DebugLog("[APP.RunGame] Full opts: " + fmt.Sprintf("%+v", opts))
 
 	// Pre-flight check: Does the game exist?
-	if _, err := os.Stat(opts.GamePath); os.IsNotExist(err) {
-		return fmt.Errorf("game executable not found at: %s", opts.GamePath)
+	if _, err := os.Stat(opts.MainExecutablePath); os.IsNotExist(err) {
+		return fmt.Errorf("game executable not found at: %s", opts.MainExecutablePath)
 	}
 
 	// CRITICAL: Normalize options before saving to ensure consistency
-	// If UseGameExe=false, GamePath MUST equal LauncherPath (launcher-only mode)
-	// If UseGameExe=true, GamePath must be different from LauncherPath (separate game exe)
-	if !opts.UseGameExe && opts.LauncherPath != "" {
-		launcher.DebugLog("[APP.RunGame] NORMALIZE: UseGameExe=false, enforcing GamePath=LauncherPath")
-		opts.GamePath = opts.LauncherPath
+	// If HaveGameExe=false, MainExecutablePath MUST equal LauncherPath (launcher-only mode)
+	// If HaveGameExe=true, MainExecutablePath must be different from LauncherPath (separate game exe)
+	if !opts.HaveGameExe && opts.LauncherPath != "" {
+		launcher.DebugLog("[APP.RunGame] NORMALIZE: HaveGameExe=false, enforcing MainExecutablePath=LauncherPath")
+		opts.MainExecutablePath = opts.LauncherPath
 	}
 
 	// Auto-save config when launching
@@ -139,7 +139,7 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 		configPath, err := launcher.GetLsfgConfigPath()
 		if err == nil {
 			// Check if profile exists
-			_, _, err := launcher.FindLsfgProfileForGameAtPath(opts.GamePath, configPath)
+			_, _, err := launcher.FindLsfgProfileForGameAtPath(opts.MainExecutablePath, configPath)
 			if err != nil {
 				// Profile doesn't exist, create it
 				launcher.DebugLog("[APP.RunGame] No profile found, creating one with current options")
@@ -154,7 +154,7 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 					}
 				}
 
-				_ = launcher.SaveLsfgProfileToPath(opts.GamePath, configPath,
+				_ = launcher.SaveLsfgProfileToPath(opts.MainExecutablePath, configPath,
 					parseMultiplier(opts.LsfgMultiplier),
 					opts.LsfgPerfMode,
 					opts.LsfgDllPath,
@@ -196,7 +196,7 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 	}
 
 	args := []string{
-		"--game", opts.GamePath,
+		"--game", opts.MainExecutablePath,
 		"--launcher", opts.LauncherPath,
 		"--prefix", opts.PrefixPath,
 		"--proton-pattern", opts.ProtonPattern,
@@ -252,9 +252,9 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 
 func (a *App) RunPrefixTool(prefixPath, toolName, protonPattern string) error {
 	opts := launcher.LaunchOptions{
-		GamePath:      toolName,
-		PrefixPath:    prefixPath,
-		ProtonPattern: protonPattern,
+		MainExecutablePath: toolName,
+		PrefixPath:         prefixPath,
+		ProtonPattern:      protonPattern,
 	}
 	cmdArgs, env := launcher.BuildCommand(opts)
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
@@ -436,8 +436,8 @@ func parseMultiplier(mult string) int {
 
 // GetLsfgProfileForGame retrieves the LSFG profile for a specific game
 // Returns nil if no profile exists (expected for unconfigured games)
-func (a *App) GetLsfgProfileForGame(gamePath string) (*LsfgProfileData, error) {
-	profile, _, err := launcher.FindLsfgProfileForGame(gamePath)
+func (a *App) GetLsfgProfileForGame(mainExePath string) (*LsfgProfileData, error) {
+	profile, _, err := launcher.FindLsfgProfileForGame(mainExePath)
 	if err != nil {
 		// No profile found - return nil (not an error)
 		// This is normal for games that haven't been configured yet
@@ -472,7 +472,7 @@ func (a *App) GetLsfgProfileForGame(gamePath string) (*LsfgProfileData, error) {
 }
 
 // SaveLsfgProfile saves an LSFG profile for a specific game
-func (a *App) SaveLsfgProfile(gamePath string, multiplier int, perfMode bool, dllPath, gpu, flowScale, pacing string, allowFp16 bool) error {
+func (a *App) SaveLsfgProfile(mainExePath string, multiplier int, perfMode bool, dllPath, gpu, flowScale, pacing string, allowFp16 bool) error {
 	// If GPU is blank, use the first available GPU
 	if gpu == "" {
 		gpuList := launcher.GetListGpus()
@@ -489,17 +489,17 @@ func (a *App) SaveLsfgProfile(gamePath string, multiplier int, perfMode bool, dl
 	}
 
 	// Save to the config file
-	return launcher.SaveLsfgProfileToPath(gamePath, configPath, multiplier, perfMode, dllPath, gpu, flowScale, pacing, allowFp16)
+	return launcher.SaveLsfgProfileToPath(mainExePath, configPath, multiplier, perfMode, dllPath, gpu, flowScale, pacing, allowFp16)
 }
 
 // RemoveProfile removes a profile from the lsfg-vk config
-func (a *App) RemoveProfile(gamePath string) error {
-	return launcher.RemoveProfileFromConfig(gamePath)
+func (a *App) RemoveProfile(mainExePath string) error {
+	return launcher.RemoveProfileFromConfig(mainExePath)
 }
 
 // EditLsfgConfigForGame returns the game path (used to trigger fullscreen editor in frontend)
-func (a *App) EditLsfgConfigForGame(gamePath string) error {
+func (a *App) EditLsfgConfigForGame(mainExePath string) error {
 	// Verify the game has a profile
-	_, _, err := launcher.FindLsfgProfileForGame(gamePath)
+	_, _, err := launcher.FindLsfgProfileForGame(mainExePath)
 	return err
 }

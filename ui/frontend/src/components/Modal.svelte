@@ -34,6 +34,7 @@
 			on:keydown|stopPropagation={handleKeydown}
 			transition:scale={{ duration: 200, start: 0.95 }}
 			role="dialog"
+			tabindex="0"
 			aria-modal="true"
 		>
 			<div class="modal-header">

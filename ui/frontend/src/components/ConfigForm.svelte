@@ -3,13 +3,12 @@
 	import Modal from "./Modal.svelte";
 	import RangeSlider from "./RangeSlider.svelte";
 	import LsfgConfigForm from "./LsfgConfigForm.svelte";
-	import { PickFileCustom, GetTotalRam, DetectLosslessDll, GetListGpus } from "../../wailsjs/go/main/App";
+	import { PickFileCustom, GetTotalRam } from "../../wailsjs/go/main/App";
 	import type { launcher } from "../../wailsjs/go/models";
 	import { onMount } from "svelte";
+	import { loadLsfgResources, parseMemoryValue } from "../lib/formService";
 
 	export let options: launcher.LaunchOptions;
-
-	// Modals
 	let showLsfgModal = false;
 	let showGamescopeModal = false;
 	let showMemoryModal = false;
@@ -26,29 +25,23 @@
 			if (options.MemoryMinValue) {
 				const numericMatch = options.MemoryMinValue.match(/([\d.]+)/);
 				if (numericMatch) {
-					const val = parseFloat(numericMatch[1]);
+					const val = parseMemoryValue(options.MemoryMinValue);
 					if (options.MemoryMinValue.endsWith("M")) {
-						memorySliderValue = val / 1024;
+						memorySliderValue = val;
 					} else {
 						memorySliderValue = val;
 					}
 				}
 			}
 
-			// Load available GPUs
-			try {
-				const gpus = await GetListGpus();
-				if (gpus && gpus.length > 0) {
-					gpuList = gpus;
-				}
-			} catch (e) {
-				console.error("Failed to detect GPUs:", e);
+			// Load GPUs and auto-detect DLL
+			const { gpus, dll } = await loadLsfgResources();
+			if (gpus.length > 0) {
+				gpuList = ["Auto (Detect)", ...gpus];
 			}
-
-			// Auto-detect DLL on mount
-			if (!options.LsfgDllPath) {
-				const dll = await DetectLosslessDll();
-				if (dll) options.LsfgDllPath = dll;
+			if (dll && !options.LsfgDllPath) {
+				options.LsfgDllPath = dll;
+				console.log("[ConfigForm] Auto-detected DLL:", dll);
 			}
 		} catch (e) {
 			console.error(e);
@@ -65,15 +58,6 @@
 			console.error(err);
 		}
 	}
-
-	/* Unused - onLsfgModalOpen was intended for auto-detection but not currently triggered
-	async function onLsfgModalOpen() {
-		if (!options.LsfgDllPath) {
-			const dll = await DetectLosslessDll();
-			if (dll) options.LsfgDllPath = dll;
-		}
-	}
-	*/
 </script>
 
 <div class="config-form">

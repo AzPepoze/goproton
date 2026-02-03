@@ -96,6 +96,11 @@
 		bind:this={trackElement}
 		on:mousedown={handleStart}
 		on:touchstart|nonpassive={handleStart}
+		role="slider"
+		tabindex="0"
+		aria-valuemin="0"
+		aria-valuemax="100"
+		aria-valuenow={value}
 	>
 		<div class="track">
 			<!-- Warning Zone Background -->

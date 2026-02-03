@@ -1,8 +1,9 @@
 import { writable } from "svelte/store";
 import type { launcher } from "../../wailsjs/go/models";
+import { DEFAULT_LAUNCH_OPTIONS } from "../lib/constants";
 
 export interface RunState {
-	gamePath: string;
+	mainExePath: string;
 	gameIcon: string;
 	launcherIcon: string;
 	prefixPath: string;
@@ -11,40 +12,14 @@ export interface RunState {
 	options: launcher.LaunchOptions;
 }
 
-const defaultOptions: launcher.LaunchOptions = {
-	GamePath: "",
-	LauncherPath: "",
-	UseGameExe: false,
-	PrefixPath: "",
-	ProtonPattern: "",
-	ProtonPath: "",
-	CustomArgs: "",
-	EnableGamescope: false,
-	GamescopeW: "1920",
-	GamescopeH: "1080",
-	GamescopeR: "60",
-	EnableMangoHud: false,
-	EnableGamemode: false,
-	EnableLsfgVk: false,
-	LsfgMultiplier: "2",
-	LsfgPerfMode: false,
-	LsfgDllPath: "",
-	LsfgGpu: "",
-	LsfgFlowScale: "",
-	LsfgPacing: "",
-	LsfgAllowFp16: false,
-	EnableMemoryMin: false,
-	MemoryMinValue: "4G",
-};
-
 const initial: RunState = {
-	gamePath: "",
+	mainExePath: "",
 	gameIcon: "",
 	launcherIcon: "",
 	prefixPath: "",
 	selectedPrefixName: "Default",
 	selectedProton: "",
-	options: defaultOptions,
+	options: DEFAULT_LAUNCH_OPTIONS,
 };
 
 export const runState = writable<RunState>(initial);

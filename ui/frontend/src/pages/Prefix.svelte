@@ -16,49 +16,22 @@
 	import ToolButton from "../components/ToolButton.svelte";
 	import type { launcher } from "../../wailsjs/go/models";
 	import { notifications } from "../notificationStore";
+	import { createLaunchOptions } from "../lib/formService";
 
-	// Prefix Management
-	let prefixPath = "";
-	let baseDir = "";
+	// State
 	let availablePrefixes: string[] = [];
-	let newPrefixName = "";
-
-	// Proton
-	let protonVersions: launcher.ProtonTool[] = [];
-	let protonOptions: string[] = [];
+	let baseDir = "";
+	let prefixPath = "";
 	let selectedProton = "";
-
-	// UI State
+	let protonVersions: any[] = [];
+	let protonOptions: string[] = [];
+	let systemStatus: any = null;
+	let newPrefixName = "";
 	let isLoading = false;
 	let runningToolName = "";
-	let systemStatus: launcher.SystemToolsStatus = { hasGamescope: false, hasMangoHud: false, hasGameMode: false };
 
 	// Config
-	let prefixOptions: launcher.LaunchOptions = {
-		GamePath: "",
-		LauncherPath: "",
-		UseGameExe: false,
-		PrefixPath: "",
-		ProtonPattern: "",
-		ProtonPath: "",
-		CustomArgs: "",
-		EnableGamescope: false,
-		GamescopeW: "1920",
-		GamescopeH: "1080",
-		GamescopeR: "60",
-		EnableMangoHud: false,
-		EnableGamemode: false,
-		EnableLsfgVk: false,
-		LsfgMultiplier: "2",
-		LsfgPerfMode: false,
-		LsfgDllPath: "",
-		LsfgGpu: "",
-		LsfgFlowScale: "0.8",
-		LsfgPacing: "none",
-		LsfgAllowFp16: false,
-		EnableMemoryMin: false,
-		MemoryMinValue: "4G",
-	};
+	let prefixOptions: launcher.LaunchOptions = createLaunchOptions();
 
 	async function refreshPrefixes() {
 		try {
@@ -133,12 +106,10 @@
 		prefixOptions.ProtonPattern = cleanName;
 		prefixOptions.ProtonPath = tool ? tool.Path : "";
 
-		try {
-			await SavePrefixConfig(name, prefixOptions);
-			notifications.success("Prefix defaults saved!");
-		} catch (err) {
-			notifications.error("Failed to save: " + err);
-		}
+		await notifications.withNotification(SavePrefixConfig(name, prefixOptions), {
+			success: "Prefix defaults saved!",
+			error: "Failed to save configuration",
+		});
 	}
 
 	async function handleBrowse() {
@@ -153,15 +124,18 @@
 	async function handleCreatePrefix() {
 		if (!newPrefixName) return;
 		const name = newPrefixName;
-		try {
-			await CreatePrefix(name);
-			newPrefixName = "";
-			await refreshPrefixes();
-			selectPrefix(name);
-			notifications.success(`Created prefix "${name}"`);
-		} catch (err) {
-			notifications.error(`Failed to create: ${err}`);
-		}
+		await notifications.withNotification(
+			(async () => {
+				await CreatePrefix(name);
+				newPrefixName = "";
+				await refreshPrefixes();
+				selectPrefix(name);
+			})(),
+			{
+				success: `Created prefix "${name}"`,
+				error: "Failed to create prefix",
+			},
+		);
 	}
 
 	function handleProtonChange(value: string) {

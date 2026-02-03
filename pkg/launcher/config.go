@@ -65,8 +65,8 @@ func LoadPrefixConfig(prefixName string) (*LaunchOptions, error) {
 }
 
 func SaveGameConfig(opts LaunchOptions) error {
-	// Use LauncherPath for config storage if available, otherwise fall back to GamePath
-	configExePath := opts.GamePath
+	// Use LauncherPath for config storage if available, otherwise fall back to MainExecutablePath
+	configExePath := opts.MainExecutablePath
 	if opts.LauncherPath != "" {
 		configExePath = opts.LauncherPath
 	}
@@ -85,8 +85,8 @@ func LoadGameConfig(exePath string) (*LaunchOptions, error) {
 
 // SaveLsfgProfile saves an LSFG profile for a game
 func SaveLsfgProfile(gameName string, profile LsfgProfile) error {
-	// Use the game path to compute the directory with hash
-	configPath := GetConfigPath(profile.GamePath)
+	// Use the main executable path to compute the directory with hash
+	configPath := GetConfigPath(profile.MainExecutablePath)
 
 	if err := os.MkdirAll(configPath, 0755); err != nil {
 		return err

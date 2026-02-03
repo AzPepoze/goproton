@@ -81,8 +81,8 @@ func BuildCommand(opts LaunchOptions) ([]string, []string) {
 	// DEBUG: Log received options
 	DebugLog("BuildCommand() called")
 	DebugLog("  LauncherPath: " + opts.LauncherPath)
-	DebugLog("  GamePath: " + opts.GamePath)
-	DebugLog("  UseGameExe: " + fmt.Sprintf("%v", opts.UseGameExe))
+	DebugLog("  MainExecutablePath: " + opts.MainExecutablePath)
+	DebugLog("  HaveGameExe: " + fmt.Sprintf("%v", opts.HaveGameExe))
 	DebugLog("  EnableLsfgVk: " + fmt.Sprintf("%v", opts.EnableLsfgVk))
 
 	var cmdArgs []string
@@ -123,15 +123,15 @@ func BuildCommand(opts LaunchOptions) ([]string, []string) {
 	cmdArgs = append(cmdArgs, "umu-run")
 
 	// Always use launcher path for execution
-	// GamePath is only used for LSFG-VK profile matching
+	// MainExecutablePath is only used for LSFG-VK profile matching
 	DebugLog("About to resolve exePath:")
 	DebugLog("  opts.LauncherPath = " + opts.LauncherPath)
-	DebugLog("  opts.GamePath = " + opts.GamePath)
+	DebugLog("  opts.MainExecutablePath = " + opts.MainExecutablePath)
 
 	exePath := opts.LauncherPath
 	if exePath == "" {
-		DebugLog("LauncherPath is empty, falling back to GamePath")
-		exePath = opts.GamePath
+		DebugLog("LauncherPath is empty, falling back to MainExecutablePath")
+		exePath = opts.MainExecutablePath
 	}
 	DebugLog("Final exePath: " + exePath)
 	cmdArgs = append(cmdArgs, exePath)

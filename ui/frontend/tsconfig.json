@@ -1,12 +1,11 @@
 {
 	"compilerOptions": {
-		"ignoreDeprecations": "6.0",
 		"target": "ESNext",
 		"useDefineForClassFields": true,
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"module": "ESNext",
 		"resolveJsonModule": true,
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
 		"allowJs": true,
 		"checkJs": true,
 		"strict": false,
@@ -14,7 +13,8 @@
 		"importsNotUsedAsValues": "remove",
 		"preserveValueImports": false,
 		"jsx": "preserve",
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"verbatimModuleSyntax": true
 	},
 	"include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.js", "src/**/*.svelte"],
 	"references": [

@@ -8,7 +8,7 @@ export interface Notification {
 
 const { subscribe, update } = writable<Notification[]>([]);
 
-export const notifications = {
+const notificationStore = {
 	subscribe,
 	add: (message: string, type: "info" | "error" | "success" = "info") => {
 		const id = Date.now();
@@ -41,4 +41,32 @@ export const notifications = {
 			update((n) => n.filter((i) => i.id !== id));
 		}, 5000);
 	},
+	warning: (message: string) => {
+		notificationStore.error(message);
+	},
+	/**
+	 * Wrapper for async operations with automatic notifications
+	 */
+	withNotification: async <T>(
+		promise: Promise<T>,
+		options: {
+			pending?: string;
+			success?: string;
+			error?: string;
+		},
+	): Promise<T> => {
+		if (options.pending) notificationStore.info(options.pending);
+
+		try {
+			const result = await promise;
+			if (options.success) notificationStore.success(options.success);
+			return result;
+		} catch (err) {
+			const errorMsg = options.error || String(err);
+			notificationStore.error(errorMsg);
+			throw err;
+		}
+	},
 };
+
+export const notifications = notificationStore;
