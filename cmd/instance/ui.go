@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"goproton/pkg/launcher"
+	"goproton/pkg/lsfg_utils"
 
 	"github.com/getlantern/systray"
 )
@@ -106,7 +107,7 @@ func setupLsfgMenu() {
 			<-mLsfgEdit.ClickedCh
 			log.Printf("LSFG menu handler: click received!")
 
-			profile, idx, err := launcher.FindLsfgProfileForGame(gamePath)
+			profile, idx, err := lsfg_utils.FindProfileForGame(gamePath)
 			if err != nil {
 				log.Printf("LSFG menu handler: error finding profile: %v", err)
 				sendNotification("LSFG-VK Config", fmt.Sprintf("Could not find profile for this game: %v", err))

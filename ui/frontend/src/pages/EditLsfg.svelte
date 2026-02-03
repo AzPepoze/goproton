@@ -112,19 +112,22 @@
 </script>
 
 {#if loading}
-	<Modal show={true} title="LSFG-VK Configuration" onClose={handleClose} fullscreen={true}>
+	<Modal show={true} title="LSFG-VK Configuration" onClose={handleClose} fullscreen={true} showDone={false}>
 		<div class="loading-container">
 			<p>Loading LSFG configuration...</p>
 		</div>
 	</Modal>
 {:else if error}
-	<Modal show={true} title="LSFG-VK Configuration" onClose={handleClose} fullscreen={true}>
+	<Modal show={true} title="LSFG-VK Configuration" onClose={handleClose} fullscreen={true} showDone={false}>
 		<div class="error-container">
 			<p>Error loading profile: {error}</p>
 		</div>
+		<div slot="footer">
+			<button class="btn secondary" on:click={handleClose}>Close</button>
+		</div>
 	</Modal>
 {:else}
-	<Modal show={true} title="LSFG-VK Configuration" onClose={handleClose} fullscreen={true}>
+	<Modal show={true} title="LSFG-VK Configuration" onClose={handleClose} fullscreen={true} showDone={false}>
 		<div class="modal-content">
 			<div class="profile-info">
 				<p class="game-path">{options.MainExecutablePath}</p>
@@ -137,13 +140,13 @@
 			{:else if saveError}
 				<div class="status-message error">✗ Error: {saveError}</div>
 			{/if}
+		</div>
 
-			<div class="actions">
-				<button class="btn secondary" on:click={handleClose}>Close</button>
-				<button class="btn primary" on:click={handleApply} disabled={saving}>
-					{saving ? "Saving..." : "Apply"}
-				</button>
-			</div>
+		<div slot="footer" class="actions">
+			<button class="btn secondary" on:click={handleClose}>Close</button>
+			<button class="btn primary" on:click={handleApply} disabled={saving}>
+				{saving ? "Saving..." : "Apply"}
+			</button>
 		</div>
 	</Modal>
 {/if}
@@ -184,11 +187,7 @@
 
 	.actions {
 		display: flex;
-		justify-content: flex-end;
 		gap: 12px;
-		margin-top: 32px;
-		padding-top: 24px;
-		border-top: 1px solid var(--glass-border);
 	}
 
 	.status-message {

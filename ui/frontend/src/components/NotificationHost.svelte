@@ -9,7 +9,7 @@
 		<div
 			class="notification-card {n.type} glass"
 			animate:flip={{ duration: 300 }}
-			in:fly={{ y: 20, duration: 300 }}
+			in:fly={{ y: 50, duration: 300 }}
 			out:fade={{ duration: 200 }}
 		>
 			<div class="icon">
@@ -30,26 +30,29 @@
 <style lang="scss">
 	.notification-container {
 		position: fixed;
-		bottom: 24px;
-		right: 24px;
+		bottom: 32px;
+		left: 50%;
+		transform: translateX(-50%);
 		z-index: 9999;
 		display: flex;
-		flex-direction: column;
+		flex-direction: column-reverse; /* Newest at bottom */
 		gap: 12px;
-		max-width: 400px;
+		width: auto;
+		min-width: 320px;
+		max-width: 90%;
 		pointer-events: none;
 	}
 
 	.notification-card {
 		pointer-events: auto;
 		padding: 16px 20px;
-		border-radius: 12px;
+		border-radius: 16px;
 		display: flex;
 		align-items: center;
 		gap: 12px;
 		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 		border: 1px solid var(--glass-border);
-		background: #1a1a1a;
+		background: #1a1a1f;
 		color: white;
 
 		&.error {

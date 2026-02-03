@@ -92,12 +92,12 @@
 		<label for="lsfgPacing">Pacing</label>
 		<div id="lsfgPacing">
 			<Dropdown
-				options={["none"]}
+				options={["none", "monitor", "monitor_external"]}
 				bind:value={options.LsfgPacing}
 				onChange={(val) => (options.LsfgPacing = val)}
 			/>
 		</div>
-		<p class="help-text">Frame timing strategy set to none (not yet implemented).</p>
+		<p class="help-text">Frame timing strategy for LSFG-VK.</p>
 	</div>
 
 	<div class="form-group">
@@ -174,7 +174,7 @@
 		background: var(--accent-primary);
 		border: none;
 		border-radius: 6px;
-		color: white;
+		color: #000000;
 		font-weight: 600;
 		cursor: pointer;
 		transition: background 0.2s;

@@ -1,4 +1,4 @@
-package launcher
+package lsfg_utils
 
 import (
 	"crypto/sha1"
@@ -12,31 +12,18 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-type LsfgGlobalConfig struct {
-	Version   int    `toml:"version"`
-	AllowFP16 bool   `toml:"allow_fp16"`
-	DLL       string `toml:"dll"`
+// GetConfigPath returns the path to the lsfg-vk config file (~/.config/lsfg-vk/conf.toml)
+func GetConfigPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".config", "lsfg-vk", "conf.toml"), nil
 }
 
-type LsfgConfigProfile struct {
-	Name            string      `toml:"name"`
-	ActiveIn        interface{} `toml:"active_in"` // Can be string or []string
-	Multiplier      int         `toml:"multiplier"`
-	PerformanceMode bool        `toml:"performance_mode"`
-	GPU             string      `toml:"gpu"`
-	FlowScale       float32     `toml:"flow_scale"`
-	Pacing          string      `toml:"pacing"`
-}
-
-type LsfgConfigFile struct {
-	Version  int                 `toml:"version"`
-	Global   LsfgGlobalConfig    `toml:"global"`
-	Profiles []LsfgConfigProfile `toml:"profile"`
-}
-
-// GetLsfgProfilePath returns the path to store LSFG profile for a game exe
+// GetProfilePath returns the path to store LSFG profile for a game exe
 // Uses format: GoProton/config/lsfg/exename-hash.toml
-func GetLsfgProfilePath(gamePath string) string {
+func GetProfilePath(gamePath, baseDir string) string {
 	h := sha1.New()
 	h.Write([]byte(gamePath))
 	hash := hex.EncodeToString(h.Sum(nil))[:8] // First 8 chars of hash
@@ -46,29 +33,18 @@ func GetLsfgProfilePath(gamePath string) string {
 	baseName = strings.TrimSuffix(baseName, ".EXE")
 
 	filename := baseName + "-" + hash + ".toml"
-	configDir := filepath.Join(GetBaseDir(), "config", "lsfg")
+	configDir := filepath.Join(baseDir, "config", "lsfg")
 	return filepath.Join(configDir, filename)
 }
 
-// GetLsfgConfigPath returns the path to the lsfg-vk config file
-// lsfg-vk reads from ~/.config/lsfg-vk/conf.toml by default
-func GetLsfgConfigPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".config", "lsfg-vk", "conf.toml"), nil
-}
-
-// FindLsfgProfileForGame finds the profile that applies to the given game exe
-// FindLsfgProfileForGameAtPath finds the profile for a game at a specific config path
-func FindLsfgProfileForGameAtPath(gamePath, configPath string) (*LsfgConfigProfile, int, error) {
+// FindProfileForGameAtPath finds the profile for a game at a specific config path
+func FindProfileForGameAtPath(gamePath, configPath string) (*ConfigProfile, int, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, -1, fmt.Errorf("failed to read LSFG config: %w", err)
 	}
 
-	var config LsfgConfigFile
+	var config ConfigFile
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return nil, -1, fmt.Errorf("failed to parse LSFG config: %w", err)
 	}
@@ -85,13 +61,13 @@ func FindLsfgProfileForGameAtPath(gamePath, configPath string) (*LsfgConfigProfi
 	return nil, -1, fmt.Errorf("no matching LSFG profile found for %s", exeName)
 }
 
-// FindLsfgProfileForGame finds the profile for a game using LSFG_CONFIG env var
-func FindLsfgProfileForGame(gamePath string) (*LsfgConfigProfile, int, error) {
-	configPath, err := GetLsfgConfigPath()
+// FindProfileForGame finds the profile for a game using default config path
+func FindProfileForGame(gamePath string) (*ConfigProfile, int, error) {
+	configPath, err := GetConfigPath()
 	if err != nil {
 		return nil, -1, err
 	}
-	return FindLsfgProfileForGameAtPath(gamePath, configPath)
+	return FindProfileForGameAtPath(gamePath, configPath)
 }
 
 // matchesProfile checks if the exe matches the profile's active_in list
@@ -113,35 +89,8 @@ func matchesProfile(exeName string, activeIn interface{}) bool {
 	return false
 }
 
-// EditLsfgProfileForGame opens the LSFG config file with the profile highlighted
-func EditLsfgProfileForGame(gamePath string) error {
-	configPath, err := GetLsfgConfigPath()
-	if err != nil {
-		return err
-	}
-
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return fmt.Errorf("LSFG config file not found at %s", configPath)
-	}
-
-	// Open with default editor
-	return openFileWithEditor(configPath)
-}
-
-// openFileWithEditor opens a file with the system default editor
-func openFileWithEditor(filePath string) error {
-	// Try xdg-open first (Linux)
-	if cmd := exec.Command("xdg-open", filePath); cmd != nil {
-		return cmd.Start()
-	}
-	return fmt.Errorf("failed to open editor")
-}
-
-// SaveLsfgProfileToPath saves a profile to the LSFG-VK config file at a specific path
-func SaveLsfgProfileToPath(gamePath, configPath string, multiplier int, perfMode bool, dllPath, gpu, flowScale, pacing string, allowFp16 bool) error {
-	DebugLog("SaveLsfgProfileToPath() called for game: " + gamePath)
-	DebugLog("SaveLsfgProfileToPath() saving to: " + configPath)
-
+// SaveProfileToPath saves a profile to the LSFG-VK config file at a specific path
+func SaveProfileToPath(gamePath, configPath string, multiplier int, perfMode bool, dllPath, gpu, flowScale, pacing string, allowFp16 bool) error {
 	// Create directory if it doesn't exist
 	configDir := filepath.Dir(configPath)
 	if err := os.MkdirAll(configDir, 0755); err != nil {
@@ -149,21 +98,21 @@ func SaveLsfgProfileToPath(gamePath, configPath string, multiplier int, perfMode
 	}
 
 	// Read existing config or create new one
-	var config LsfgConfigFile
+	var config ConfigFile
 	if data, err := os.ReadFile(configPath); err == nil {
 		if err := toml.Unmarshal(data, &config); err != nil {
 			return fmt.Errorf("failed to parse existing LSFG config: %w", err)
 		}
 	} else {
 		// Create new config with version 2
-		config = LsfgConfigFile{
+		config = ConfigFile{
 			Version: 2,
-			Global: LsfgGlobalConfig{
+			Global: GlobalConfig{
 				Version:   2,
 				AllowFP16: allowFp16,
 				DLL:       dllPath,
 			},
-			Profiles: []LsfgConfigProfile{},
+			Profiles: []ConfigProfile{},
 		}
 	}
 
@@ -185,7 +134,7 @@ func SaveLsfgProfileToPath(gamePath, configPath string, multiplier int, perfMode
 			config.Profiles[i].PerformanceMode = perfMode
 			config.Profiles[i].GPU = gpu
 			config.Profiles[i].FlowScale = parseFlowScale(flowScale)
-			config.Profiles[i].Pacing = "none" // Always use 'none' pacing
+			config.Profiles[i].Pacing = pacing
 			found = true
 			break
 		}
@@ -193,14 +142,14 @@ func SaveLsfgProfileToPath(gamePath, configPath string, multiplier int, perfMode
 
 	if !found {
 		// Create new profile
-		newProfile := LsfgConfigProfile{
+		newProfile := ConfigProfile{
 			Name:            strings.TrimSuffix(exeName, filepath.Ext(exeName)),
-			ActiveIn:        exeName, // Store just the exe name
+			ActiveIn:        exeName,
 			Multiplier:      multiplier,
 			PerformanceMode: perfMode,
 			GPU:             gpu,
 			FlowScale:       parseFlowScale(flowScale),
-			Pacing:          "none", // Always use 'none' pacing
+			Pacing:          pacing,
 		}
 		config.Profiles = append(config.Profiles, newProfile)
 	}
@@ -218,26 +167,21 @@ func SaveLsfgProfileToPath(gamePath, configPath string, multiplier int, perfMode
 	return nil
 }
 
-// SaveLsfgProfileToGlobal saves a profile to the lsfg-vk config file
-// Edits the config file to add or update profile for the game
-func SaveLsfgProfileToGlobal(gamePath string, multiplier int, perfMode bool, dllPath, gpu, flowScale, pacing string, allowFp16 bool) error {
-	configPath, err := GetLsfgConfigPath()
+// SaveProfileToGlobal saves a profile to the lsfg-vk config file
+func SaveProfileToGlobal(gamePath string, multiplier int, perfMode bool, dllPath, gpu, flowScale, pacing string, allowFp16 bool) error {
+	configPath, err := GetConfigPath()
 	if err != nil {
-		DebugLog("SaveLsfgProfileToGlobal() error getting config path: " + err.Error())
 		return err
 	}
-	return SaveLsfgProfileToPath(gamePath, configPath, multiplier, perfMode, dllPath, gpu, flowScale, pacing, allowFp16)
+	return SaveProfileToPath(gamePath, configPath, multiplier, perfMode, dllPath, gpu, flowScale, pacing, allowFp16)
 }
 
 // RemoveProfileFromConfig removes a profile for a game from the config file
 func RemoveProfileFromConfig(gamePath string) error {
-	configPath, err := GetLsfgConfigPath()
+	configPath, err := GetConfigPath()
 	if err != nil {
 		return err
 	}
-
-	DebugLog("RemoveProfileFromConfig() called for game: " + gamePath)
-	DebugLog("RemoveProfileFromConfig() config path: " + configPath)
 
 	// Read existing config
 	data, err := os.ReadFile(configPath)
@@ -245,7 +189,7 @@ func RemoveProfileFromConfig(gamePath string) error {
 		return fmt.Errorf("failed to read LSFG config: %w", err)
 	}
 
-	var config LsfgConfigFile
+	var config ConfigFile
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return fmt.Errorf("failed to parse LSFG config: %w", err)
 	}
@@ -257,7 +201,6 @@ func RemoveProfileFromConfig(gamePath string) error {
 	found := false
 	for i, profile := range config.Profiles {
 		if matchesProfile(strings.ToLower(exeName), profile.ActiveIn) {
-			DebugLog("RemoveProfileFromConfig() found profile for " + exeName + ", removing it")
 			// Remove profile by slicing
 			config.Profiles = append(config.Profiles[:i], config.Profiles[i+1:]...)
 			found = true
@@ -280,6 +223,30 @@ func RemoveProfileFromConfig(gamePath string) error {
 	}
 
 	return nil
+}
+
+// EditConfigForGame opens the LSFG config file with the default editor
+func EditConfigForGame(gamePath string) error {
+	configPath, err := GetConfigPath()
+	if err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return fmt.Errorf("LSFG config file not found at %s", configPath)
+	}
+
+	// Open with default editor
+	return openFileWithEditor(configPath)
+}
+
+// openFileWithEditor opens a file with the system default editor
+func openFileWithEditor(filePath string) error {
+	// Try xdg-open first (Linux)
+	if cmd := exec.Command("xdg-open", filePath); cmd != nil {
+		return cmd.Start()
+	}
+	return fmt.Errorf("failed to open editor")
 }
 
 // parseFlowScale parses a flowScale string to float32

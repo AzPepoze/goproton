@@ -5,6 +5,7 @@
 	export let title = "Settings";
 	export let fullscreen = false;
 	export let onClose: () => void = () => {};
+	export let showDone = true;
 
 	function close() {
 		onClose();
@@ -44,9 +45,13 @@
 			<div class="modal-body">
 				<slot></slot>
 			</div>
-			<div class="modal-footer">
-				<button class="btn primary" on:click={close}>Done</button>
-			</div>
+			{#if $$slots.footer || showDone}
+				<div class="modal-footer">
+					<slot name="footer">
+						<button class="btn primary" on:click={close}>Done</button>
+					</slot>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}
@@ -58,8 +63,7 @@
 		left: 0;
 		width: 100%;
 		height: 100%;
-		background: rgba(0, 0, 0, 0.7);
-		backdrop-filter: blur(4px);
+		background: rgba(0, 0, 0, 0.85);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -68,6 +72,7 @@
 
 	.modal-content {
 		width: 90%;
+		max-width: 600px;
 		background: #1a1a1a;
 		border: 1px solid #333;
 		border-radius: 16px;

@@ -7,8 +7,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"goproton/pkg/launcher"
+	"goproton/pkg/lsfg_utils"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -136,10 +138,10 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 	// If LSFG-VK enabled, ensure profile exists in config
 	if opts.EnableLsfgVk {
 		launcher.DebugLog("[APP.RunGame] LSFG-VK enabled, ensuring profile exists")
-		configPath, err := launcher.GetLsfgConfigPath()
+		configPath, err := lsfg_utils.GetConfigPath()
 		if err == nil {
 			// Check if profile exists
-			_, _, err := launcher.FindLsfgProfileForGameAtPath(opts.MainExecutablePath, configPath)
+			_, _, err := lsfg_utils.FindProfileForGameAtPath(opts.MainExecutablePath, configPath)
 			if err != nil {
 				// Profile doesn't exist, create it
 				launcher.DebugLog("[APP.RunGame] No profile found, creating one with current options")
@@ -154,7 +156,7 @@ func (a *App) RunGame(opts launcher.LaunchOptions, showLogs bool) error {
 					}
 				}
 
-				_ = launcher.SaveLsfgProfileToPath(opts.MainExecutablePath, configPath,
+				_ = lsfg_utils.SaveProfileToPath(opts.MainExecutablePath, configPath,
 					parseMultiplier(opts.LsfgMultiplier),
 					opts.LsfgPerfMode,
 					opts.LsfgDllPath,
@@ -262,7 +264,69 @@ func (a *App) RunPrefixTool(prefixPath, toolName, protonPattern string) error {
 	return cmd.Start()
 }
 
+func (a *App) runSystemPicker(title string, folder bool, filters []runtime.FileFilter) (string, bool) {
+	// Try zenity
+	if _, err := exec.LookPath("zenity"); err == nil {
+		args := []string{"--file-selection", "--title=" + title}
+		if folder {
+			args = append(args, "--directory")
+		}
+		if len(filters) > 0 {
+			for _, f := range filters {
+				// Zenity uses "Name | pattern1 pattern2"
+				pattern := strings.ReplaceAll(f.Pattern, ";", " ")
+				args = append(args, "--file-filter="+f.DisplayName+"|"+pattern)
+			}
+		}
+		cmd := exec.Command("zenity", args...)
+		output, err := cmd.Output()
+		if err == nil {
+			return strings.TrimSpace(string(output)), true
+		}
+		// Code 1 means cancel
+		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+			return "", true
+		}
+	}
+
+	// Try kdialog
+	if _, err := exec.LookPath("kdialog"); err == nil {
+		var args []string
+		if folder {
+			args = []string{"--getexistingdirectory", ".", "--title", title}
+		} else {
+			filterStr := ""
+			if len(filters) > 0 {
+				var parts []string
+				for _, f := range filters {
+					pattern := strings.ReplaceAll(f.Pattern, ";", " ")
+					parts = append(parts, f.DisplayName+" ("+pattern+")")
+				}
+				filterStr = strings.Join(parts, ";;")
+			}
+			args = []string{"--getopenfilename", ".", filterStr, "--title", title}
+		}
+		cmd := exec.Command("kdialog", args...)
+		output, err := cmd.Output()
+		if err == nil {
+			return strings.TrimSpace(string(output)), true
+		}
+		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+			return "", true
+		}
+	}
+
+	return "", false
+}
+
 func (a *App) PickFile() (string, error) {
+	if path, ok := a.runSystemPicker("Select Game Executable", false, []runtime.FileFilter{
+		{DisplayName: "Executables (*.exe)", Pattern: "*.exe"},
+		{DisplayName: "All Files", Pattern: "*.*"},
+	}); ok {
+		return path, nil
+	}
+
 	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 		Title: "Select Game Executable",
 		Filters: []runtime.FileFilter{
@@ -273,8 +337,12 @@ func (a *App) PickFile() (string, error) {
 }
 
 func (a *App) PickFolder() (string, error) {
+	if path, ok := a.runSystemPicker("Select Directory", true, nil); ok {
+		return path, nil
+	}
+
 	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Select Prefix Directory",
+		Title: "Select Directory",
 	})
 }
 
@@ -303,7 +371,10 @@ func (a *App) GetPrefixBaseDir() string {
 }
 
 func (a *App) GetUtilsStatus() launcher.UtilsStatus {
-	return launcher.GetUtilsStatus()
+	return launcher.UtilsStatus{
+		IsLsfgInstalled: lsfg_utils.IsInstalled(),
+		LsfgVersion:     lsfg_utils.GetVersion(),
+	}
 }
 
 func (a *App) GetSystemToolsStatus() launcher.SystemToolsStatus {
@@ -311,7 +382,7 @@ func (a *App) GetSystemToolsStatus() launcher.SystemToolsStatus {
 }
 
 func (a *App) InstallLsfg() error {
-	return launcher.InstallLsfg(func(percent int, msg string) {
+	return lsfg_utils.Install(func(percent int, msg string) {
 		runtime.EventsEmit(a.ctx, "lsfg-install-progress", map[string]interface{}{
 			"percent": percent,
 			"message": msg,
@@ -346,6 +417,9 @@ func (a *App) GetListGpus() []string {
 // PickFileCustom opens a file dialog with custom filters
 
 func (a *App) PickFileCustom(title string, filters []runtime.FileFilter) (string, error) {
+	if path, ok := a.runSystemPicker(title, false, filters); ok {
+		return path, nil
+	}
 
 	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
 
@@ -360,7 +434,7 @@ func (a *App) PickFileCustom(title string, filters []runtime.FileFilter) (string
 
 func (a *App) UninstallLsfg() error {
 
-	return launcher.UninstallLsfg()
+	return lsfg_utils.Uninstall(launcher.DebugLog)
 
 }
 
@@ -437,7 +511,7 @@ func parseMultiplier(mult string) int {
 // GetLsfgProfileForGame retrieves the LSFG profile for a specific game
 // Returns nil if no profile exists (expected for unconfigured games)
 func (a *App) GetLsfgProfileForGame(mainExePath string) (*LsfgProfileData, error) {
-	profile, _, err := launcher.FindLsfgProfileForGame(mainExePath)
+	profile, _, err := lsfg_utils.FindProfileForGame(mainExePath)
 	if err != nil {
 		// No profile found - return nil (not an error)
 		// This is normal for games that haven't been configured yet
@@ -447,11 +521,11 @@ func (a *App) GetLsfgProfileForGame(mainExePath string) (*LsfgProfileData, error
 	// Get global config for DLL and AllowFp16
 	var dllPath string
 	var allowFp16 bool
-	configPath, err := launcher.GetLsfgConfigPath()
+	configPath, err := lsfg_utils.GetConfigPath()
 	if err == nil {
 		data, err := os.ReadFile(configPath)
 		if err == nil {
-			var config launcher.LsfgConfigFile
+			var config lsfg_utils.ConfigFile
 			if err := toml.Unmarshal(data, &config); err == nil {
 				dllPath = config.Global.DLL
 				allowFp16 = config.Global.AllowFP16
@@ -483,23 +557,23 @@ func (a *App) SaveLsfgProfile(mainExePath string, multiplier int, perfMode bool,
 	}
 
 	// Get the config file path (defaults to ~/.config/lsfg-vk/conf.toml)
-	configPath, err := launcher.GetLsfgConfigPath()
+	configPath, err := lsfg_utils.GetConfigPath()
 	if err != nil {
 		return err
 	}
 
 	// Save to the config file
-	return launcher.SaveLsfgProfileToPath(mainExePath, configPath, multiplier, perfMode, dllPath, gpu, flowScale, pacing, allowFp16)
+	return lsfg_utils.SaveProfileToPath(mainExePath, configPath, multiplier, perfMode, dllPath, gpu, flowScale, pacing, allowFp16)
 }
 
 // RemoveProfile removes a profile from the lsfg-vk config
 func (a *App) RemoveProfile(mainExePath string) error {
-	return launcher.RemoveProfileFromConfig(mainExePath)
+	return lsfg_utils.RemoveProfileFromConfig(mainExePath)
 }
 
 // EditLsfgConfigForGame returns the game path (used to trigger fullscreen editor in frontend)
 func (a *App) EditLsfgConfigForGame(mainExePath string) error {
 	// Verify the game has a profile
-	_, _, err := launcher.FindLsfgProfileForGame(mainExePath)
+	_, _, err := lsfg_utils.FindProfileForGame(mainExePath)
 	return err
 }

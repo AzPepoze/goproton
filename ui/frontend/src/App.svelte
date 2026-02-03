@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Sidebar from "./components/Sidebar.svelte";
+	import Navbar from "./components/Navbar.svelte";
 	import Home from "./pages/Home.svelte";
 	import Run from "./pages/Run.svelte";
 	import Versions from "./pages/Versions.svelte";
@@ -61,32 +61,40 @@
 </script>
 
 <main>
-	{#if activePage !== "editlsfg"}
-		<Sidebar {activePage} onNavigate={handleNavigate} />
-	{/if}
-
-	<div class="content" class:fullscreen={activePage === "editlsfg"}>
-		{#key activePage}
-			<div class="page-wrapper" in:fly={{ y: 10, duration: 300, delay: 150 }} out:fade={{ duration: 150 }}>
-				{#if activePage === "home"}
-					<Home />
-				{:else if activePage === "run"}
-					<Run />
-				{:else if activePage === "versions"}
-					<Versions />
-				{:else if activePage === "prefix"}
-					<Prefix />
-				{:else if activePage === "utils"}
-					<Utils />
-				{:else if activePage === "editlsfg"}
-					<EditLsfg gamePath={editLsfgGamePath} />
-				{:else}
-					<div class="placeholder">
-						Page "{activePage}" not implemented yet.
-					</div>
-				{/if}
+	<div class="app-layout" class:fullscreen={activePage === "editlsfg"}>
+		{#if activePage !== "editlsfg"}
+			<div class="navbar-container">
+				<Navbar {activePage} onNavigate={handleNavigate} />
 			</div>
-		{/key}
+		{/if}
+
+		<div class="content-container">
+			{#key activePage}
+				<div
+					class="page-wrapper"
+					in:fly={{ y: 10, duration: 300, delay: 150 }}
+					out:fade={{ duration: 150 }}
+				>
+					{#if activePage === "home"}
+						<Home />
+					{:else if activePage === "run"}
+						<Run />
+					{:else if activePage === "versions"}
+						<Versions />
+					{:else if activePage === "prefix"}
+						<Prefix />
+					{:else if activePage === "utils"}
+						<Utils />
+					{:else if activePage === "editlsfg"}
+						<EditLsfg gamePath={editLsfgGamePath} />
+					{:else}
+						<div class="placeholder">
+							Page "{activePage}" not implemented yet.
+						</div>
+					{/if}
+				</div>
+			{/key}
+		</div>
 	</div>
 
 	<NotificationHost />
@@ -94,25 +102,51 @@
 
 <style lang="scss">
 	main {
-		display: flex;
+		position: relative;
 		height: 100vh;
 		width: 100vw;
-		background-color: var(--glass-bg);
+		background-color: #0c0c0e;
 		color: var(--text-main);
 		user-select: none;
 		overflow: hidden; /* Prevent scrollbar flicker during transition */
 	}
 
-	.content {
-		flex: 1;
-		height: 100%;
-		position: relative; /* Important for absolute positioning of page wrapper */
-		/* Subtle neutral gradient for depth */
-		background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+	.app-layout {
+		display: flex;
+		flex-direction: row !important; /* Force horizontal layout */
+		justify-content: flex-start !important; /* Start from left */
+		height: 100vh;
+		width: 100vw;
+		position: relative;
+		z-index: 1;
 
 		&.fullscreen {
-			width: 100vw;
+			.navbar-container {
+				display: none;
+			}
 		}
+	}
+
+	.navbar-container {
+		order: 0 !important; /* Absolute first position */
+		width: 80px; /* Thinner sidebar area */
+		padding: 24px 0;
+		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		z-index: 10;
+		background: transparent;
+	}
+
+	.content-container {
+		order: 1 !important; /* Absolute second position */
+		flex: 1;
+		min-width: 0;
+		height: 100%;
+		position: relative;
+		background: transparent;
 	}
 
 	/* Wrapper to handle transition positioning */
@@ -123,6 +157,8 @@
 		width: 100%;
 		height: 100%;
 		overflow-y: auto; /* Allow scrolling inside the page */
+		padding: 24px;
+		box-sizing: border-box;
 	}
 
 	.placeholder {
