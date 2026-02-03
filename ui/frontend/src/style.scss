@@ -17,6 +17,10 @@
 	--success: #22c55e;
 }
 
+* {
+	box-sizing: border-box;
+}
+
 body {
 	margin: 0;
 	font-family:
@@ -121,17 +125,22 @@ body {
 	}
 }
 
-/* Scrollbar */
+/* Global Scrollbar Styles */
 ::-webkit-scrollbar {
-	width: 5px;
+	width: 6px;
+	height: 6px;
 }
+
 ::-webkit-scrollbar-track {
 	background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-	background: rgba(255, 255, 255, 0.15);
+	background: rgba(255, 255, 255, 0.1);
 	border-radius: 10px;
-	&:hover {
-		background: rgba(255, 255, 255, 0.25);
-	}
+	transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(255, 255, 255, 0.2);
 }

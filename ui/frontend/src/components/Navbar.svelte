@@ -40,6 +40,11 @@
 </script>
 
 <div class="navbar-wrapper">
+	<div class="brand-v-text">
+		{#each "GOPROTON".split("") as char, i}
+			<span style="animation-delay: {i * 0.1}s">{char}</span>
+		{/each}
+	</div>
 	<nav class="navbar" bind:this={navbarRef}>
 		<div class="moving-indicator" style={indicatorStyle}></div>
 		{#each navItems as item}
@@ -65,7 +70,39 @@
 	.navbar-wrapper {
 		z-index: 1000;
 		display: flex;
-		justify-content: center;
+		flex-direction: column;
+		align-items: center;
+		padding-top: 20px;
+		gap: 40px;
+	}
+
+	.brand-v-text {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 4px;
+		user-select: none;
+
+		span {
+			font-size: 0.75rem;
+			font-weight: 950;
+			color: rgba(255, 255, 255, 0.4);
+			animation: char-wave 2s infinite ease-in-out;
+			line-height: 1;
+		}
+	}
+
+	@keyframes char-wave {
+		0%,
+		100% {
+			transform: scale(1);
+			color: rgba(255, 255, 255, 0.4);
+		}
+		50% {
+			transform: scale(1.3);
+			color: #fff;
+			text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+		}
 	}
 
 	.navbar {

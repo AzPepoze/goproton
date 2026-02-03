@@ -1,40 +1,24 @@
 <script lang="ts">
-	import {
-		CleanupProcesses,
-		GetAllGames,
-		GetRunningSessions,
-		KillSession,
-		RunGame,
-		GetSystemInfo,
-		GetSystemUsage,
-	} from "../../wailsjs/go/backend/App";
+	import { GetAllGames, GetRunningSessions, KillSession, RunGame } from "../../wailsjs/go/backend/App";
 	import { onMount, onDestroy } from "svelte";
+	import { fly } from "svelte/transition";
 	import { notifications } from "../notificationStore";
 	import { navigationCommand } from "../stores/navigationStore";
 	import { runState } from "../stores/runState";
 	import { loadExeIcon } from "../lib/iconService";
 	import GameCard from "../components/GameCard.svelte";
-	import trashIcon from "../icons/trash.svg";
-	import type { core } from "../../wailsjs/go/models";
+	import StatusDrawer from "../components/StatusDrawer.svelte";
+	import Modal from "../components/Modal.svelte";
 
 	let games = [];
 	let sessions = [];
 	let sessionInterval;
-	let usageInterval;
 	let gameIcons = {};
-	let sysInfo: core.SystemInfo = {
-		os: "Loading...",
-		kernel: "",
-		cpu: "",
-		gpu: "",
-		ram: "",
-		driver: "",
-	};
-	let sysUsage: core.SystemUsage = {
-		cpu: "0%",
-		ram: "0%",
-		gpu: "0%",
-	};
+	let showHelpModal = false;
+	let currentView: "grid" | "list-grid" = "grid";
+	let searchQuery = "";
+
+	$: filteredGames = games.filter((game) => game.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
 	async function refreshData() {
 		try {
@@ -42,10 +26,6 @@
 			games = fetchedGames || [];
 			const fetchedSessions = await GetRunningSessions();
 			sessions = fetchedSessions || [];
-
-			GetSystemInfo().then((info) => {
-				sysInfo = info;
-			});
 
 			// Fetch icons for games
 			for (const game of games) {
@@ -73,30 +53,11 @@
 				console.error("Failed to fetch sessions in interval:", err);
 			}
 		}, 3000);
-
-		usageInterval = setInterval(async () => {
-			try {
-				sysUsage = await GetSystemUsage();
-			} catch (err) {
-				console.error("Failed to fetch usage:", err);
-			}
-		}, 2000);
 	});
 
 	onDestroy(() => {
 		if (sessionInterval) clearInterval(sessionInterval);
-		if (usageInterval) clearInterval(usageInterval);
 	});
-
-	async function handleCleanup() {
-		try {
-			await CleanupProcesses();
-			notifications.add("System cleaned successfully!", "success");
-			refreshData();
-		} catch (err) {
-			notifications.add(`Cleanup failed: ${err}`, "error");
-		}
-	}
 
 	async function handleQuickLaunch(game) {
 		try {
@@ -109,9 +70,10 @@
 	}
 
 	function handleConfigure(game) {
-		runState.set({
+		runState.update((s) => ({
+			...s,
 			options: game.config,
-		});
+		}));
 		navigationCommand.set({ page: "run" });
 	}
 
@@ -132,88 +94,12 @@
 </script>
 
 <div class="home-container">
-	<div class="hero-section">
-		<h1 class="welcome-text">WELCOME TO <span class="highlight">GOPROTON!</span></h1>
-	</div>
-
-	<h2 class="section-title">System Status</h2>
-	<div class="system-info-grid">
-		<!-- CPU Card -->
-		<div class="info-card glass">
-			<div class="card-header-small">
-				<svg class="card-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
-				<span class="label">Processor</span>
-			</div>
-			<div class="card-content">
-				<span class="value" title={sysInfo.cpu}>{sysInfo.cpu}</span>
-				<div class="usage-mini">
-					<span class="u-val">{sysUsage.cpu} Usage</span>
-					<div class="progress-bar-mini">
-						<div class="fill" style="width: {sysUsage.cpu}"></div>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- RAM Card -->
-		<div class="info-card glass">
-			<div class="card-header-small">
-				<svg class="card-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/><path d="M8 11V9"/><path d="M16 11V9"/><rect width="18" height="12" x="3" y="7" rx="2"/><path d="M3 13h18"/></svg>
-				<span class="label">Memory</span>
-			</div>
-			<div class="card-content">
-				<span class="value">{sysInfo.ram} Total</span>
-				<div class="usage-mini">
-					<span class="u-val">{sysUsage.ram.split(" / ")[0]} Used</span>
-					<div class="progress-bar-mini">
-						<div
-							class="fill"
-							style="width: {sysUsage.ram.includes('(')
-								? sysUsage.ram.split('(').pop().replace(')', '')
-								: '0%'}"
-						></div>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- GPU Card -->
-		<div class="info-card glass">
-			<div class="card-header-small">
-				<svg class="card-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/><rect width="12" height="8" x="10" y="10" rx="2"/><path d="M14 10V8"/><path d="M18 10V8"/><path d="M14 20v-2"/><path d="M18 20v-2"/><path d="M22 14h-2"/><path d="M22 18h-2"/></svg>
-				<span class="label">Graphics</span>
-			</div>
-			<div class="card-content">
-				<span class="value" title={sysInfo.gpu}>{sysInfo.gpu}</span>
-				<div class="usage-mini">
-					<span class="u-val">{sysUsage.gpu} Load</span>
-					<div class="progress-bar-mini">
-						<div class="fill" style="width: {sysUsage.gpu}; background: var(--accent-secondary, #b197fc)"></div>
-					</div>
-				</div>
-				<span class="sub-value" style="margin-top: -4px" title={sysInfo.driver}>{sysInfo.driver}</span>
-			</div>
-		</div>
-
-		<!-- OS Card -->
-		<div class="info-card glass">
-			<div class="card-header-small">
-				<svg class="card-icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
-				<span class="label">System</span>
-			</div>
-			<div class="card-content single">
-				<span class="value" title={sysInfo.os}>{sysInfo.os}</span>
-				<span class="sub-value">Kernel: {sysInfo.kernel}</span>
-			</div>
-		</div>
-	</div>
-
 	{#if sessions.length > 0}
 		<div class="sessions-section">
 			<h2 class="section-title">Running Sessions</h2>
 			<div class="sessions-grid">
 				{#each sessions as session}
-					<div class="session-card">
+					<div class="session-card" in:fly={{ y: -20, duration: 400 }}>
 						<div class="session-info">
 							<div class="session-title">{session.gameName}</div>
 							<div class="session-pid">PID: {session.pid}</div>
@@ -231,176 +117,202 @@
 	{/if}
 
 	<div class="quick-launch-section">
-		<h2 class="section-title">Quick Launch</h2>
+		<div class="section-header">
+			<h2 class="section-title">Quick Launch</h2>
+			<button class="help-btn" on:click={() => (showHelpModal = true)} title="How it works">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<circle cx="12" cy="12" r="10" />
+					<path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+					<line x1="12" y1="17" x2="12.01" y2="17" />
+				</svg>
+			</button>
+
+			<div class="search-container">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					class="search-icon"
+				>
+					<circle cx="11" cy="11" r="8"></circle>
+					<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+				</svg>
+				<input type="text" placeholder="Search games..." bind:value={searchQuery} class="search-input" />
+				{#if searchQuery}
+					<button class="clear-search" on:click={() => (searchQuery = "")}>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						>
+							<line x1="18" y1="6" x2="6" y2="18"></line>
+							<line x1="6" y1="6" x2="18" y2="18"></line>
+						</svg>
+					</button>
+				{/if}
+			</div>
+
+			<div class="view-switcher">
+				<button
+					class="view-btn"
+					class:active={currentView === "grid"}
+					on:click={() => (currentView = "grid")}
+					title="Grid View"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"
+						></rect><rect x="14" y="14" width="7" height="7"></rect><rect
+							x="3"
+							y="14"
+							width="7"
+							height="7"
+						></rect></svg
+					>
+				</button>
+				<button
+					class="view-btn"
+					class:active={currentView === "list-grid"}
+					on:click={() => (currentView = "list-grid")}
+					title="List View"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"
+						></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"
+						></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line
+							x1="3"
+							y1="18"
+							x2="3.01"
+							y2="18"
+						></line></svg
+					>
+				</button>
+			</div>
+		</div>
+
 		{#if games.length === 0}
 			<div class="empty-state">
 				<p>
-					No games configured yet. Go to <span
-						class="link"
-						on:click={() => navigationCommand.set({ page: "run" })}>Run</span
+					No games configured yet. Go to <button
+						class="link-btn"
+						on:click={() => navigationCommand.set({ page: "run" })}>Run</button
 					> to add one.
 				</p>
 			</div>
 		{:else}
-			<div class="games-grid">
-				{#each games as game}
-					<GameCard
-						{game}
-						icon={gameIcons[game.path || game.config.LauncherPath]}
-						isRunning={isGameRunning(game)}
-						on:launch={() => handleQuickLaunch(game)}
-						on:configure={() => handleConfigure(game)}
-					/>
-				{/each}
+			<div
+				class="games-container"
+				class:grid-view={currentView === "grid"}
+				class:list-view={currentView === "list-grid"}
+			>
+				{#if filteredGames.length === 0 && games.length > 0}
+					<div class="no-results">
+						<p>No games matching "{searchQuery}"</p>
+						<button class="link-btn" on:click={() => (searchQuery = "")}>Clear search</button>
+					</div>
+				{:else}
+					<div class="games-grid">
+						{#each filteredGames as game}
+							<GameCard
+								{game}
+								icon={gameIcons[game.path || game.config.LauncherPath]}
+								isRunning={isGameRunning(game)}
+								view={currentView}
+								on:launch={() => handleQuickLaunch(game)}
+								on:configure={() => handleConfigure(game)}
+							/>
+						{/each}
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>
-
-	<div class="utils-section">
-		<h2 class="section-title">Utilities</h2>
-		<div class="grid">
-			<button class="card hoverable cleanup-card" on:click={handleCleanup}>
-				<div class="card-header">
-					<span class="card-icon text-warning">
-						<img src={trashIcon} alt="cleanup" class="svg-icon" />
-					</span>
-					<h3>Cleanup System</h3>
-				</div>
-				<p>Forcefully terminate all running game instances and background services.</p>
-			</button>
-		</div>
-	</div>
 </div>
+
+<Modal show={showHelpModal} title="How it works" onClose={() => (showHelpModal = false)}>
+	<div class="help-content">
+		<section>
+			<h3>Adding Games</h3>
+			<p>
+				Go to the <strong>Run</strong> page, select your game executable (and launcher if applicable),
+				configure your settings, and click <strong>LAUNCH GAME</strong>.
+			</p>
+			<p>
+				After the first run, the game will automatically appear here in <strong>Quick Launch</strong>.
+			</p>
+		</section>
+
+		<section>
+			<h3>Quick Launch</h3>
+			<p>Click on any game card in this section to start it immediately with its saved configuration.</p>
+		</section>
+
+		<section>
+			<h3>Managing Sessions</h3>
+			<p>Active game sessions are displayed at the top. You can terminate them if they become unresponsive.</p>
+		</section>
+
+		<section>
+			<h3>CLI Usage</h3>
+			<p>You can also launch games directly from your terminal or add them to your desktop entries:</p>
+			<code class="help-code">goproton /path/to/game.exe</code>
+		</section>
+	</div>
+</Modal>
+
+<StatusDrawer />
 
 <style lang="scss">
 	.home-container {
 		display: flex;
 		flex-direction: column;
 		height: 100%;
-		padding: 40px;
-		overflow-y: auto;
+		width: 100%;
+		padding: 0;
 		background-color: transparent;
-		gap: 40px;
-	}
-
-	.hero-section {
-		text-align: center;
-		margin-bottom: 20px;
-
-		.welcome-text {
-			font-size: 3rem;
-			font-weight: 900;
-			color: #fff;
-			margin: 0;
-			letter-spacing: -1px;
-			line-height: 1.1;
-
-			.highlight {
-				color: transparent;
-				-webkit-text-stroke: 1px rgba(255, 255, 255, 0.8);
-				background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0.2) 100%);
-				-webkit-background-clip: text;
-				background-clip: text;
-			}
-		}
-	}
-
-	.system-info-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 		gap: 20px;
-		margin-bottom: 20px;
-	}
-
-	.info-card {
-		padding: 20px;
-		border-radius: 20px;
-		background: rgba(255, 255, 255, 0.03);
-		border: 1px solid var(--glass-border);
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-		transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-		min-width: 0;
-
-		&:hover {
-			background: rgba(255, 255, 255, 0.06);
-			border-color: var(--glass-border-bright);
-			transform: translateY(-2px);
-		}
-
-		.card-header-small {
-			display: flex;
-			align-items: center;
-			gap: 10px;
-
-			.card-icon-small {
-				width: 18px;
-				height: 18px;
-				color: var(--text-dim);
-				opacity: 0.8;
-			}
-
-			.label {
-				font-size: 0.7rem;
-				font-weight: 800;
-				color: var(--text-dim);
-				text-transform: uppercase;
-				letter-spacing: 1.5px;
-			}
-		}
-
-		.card-content {
-			display: flex;
-			flex-direction: column;
-			gap: 10px;
-
-			&.single {
-				gap: 4px;
-			}
-		}
-
-		.value {
-			font-size: 1rem;
-			font-weight: 700;
-			color: var(--text-main);
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-
-		.sub-value {
-			font-size: 0.8rem;
-			color: var(--text-muted);
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
-	}
-
-	.usage-mini {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-
-		.u-val {
-			font-size: 0.85rem;
-			font-weight: 700;
-			color: var(--accent-primary);
-		}
-	}
-
-	.progress-bar-mini {
-		height: 6px;
-		background: rgba(255, 255, 255, 0.05);
-		border-radius: 10px;
-		overflow: hidden;
-
-		.fill {
-			height: 100%;
-			background: var(--accent-primary);
-			transition: width 0.3s ease;
-		}
+		box-sizing: border-box;
+		min-height: 0;
+		overflow-x: hidden;
 	}
 
 	.section-title {
@@ -413,6 +325,7 @@
 	}
 
 	.sessions-section {
+		flex-shrink: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
@@ -424,8 +337,8 @@
 		animation: slide-down 0.5s cubic-bezier(0.23, 1, 0.32, 1);
 
 		.section-title {
-			margin-bottom: 0;
-			color: var(--danger);
+			margin-bottom: 10px;
+			color: #ef4444;
 		}
 	}
 
@@ -462,6 +375,10 @@
 			color: #fff;
 			font-size: 1rem;
 			letter-spacing: -0.3px;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			max-width: 200px;
 		}
 
 		.session-pid {
@@ -472,7 +389,7 @@
 		}
 
 		.kill-btn {
-			background: var(--danger);
+			background: #ef4444;
 			color: #fff;
 			padding: 8px 16px;
 			border: none;
@@ -506,10 +423,234 @@
 		}
 	}
 
+	.quick-launch-section {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		min-height: 0;
+
+		.section-header {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			margin-bottom: 20px;
+			flex-wrap: wrap;
+
+			.section-title {
+				margin: 0;
+				line-height: 1;
+				white-space: nowrap;
+			}
+		}
+
+		.view-switcher {
+			display: flex;
+			background: rgba(255, 255, 255, 0.05);
+			padding: 4px;
+			border-radius: 12px;
+			gap: 4px;
+			border: 1px solid rgba(255, 255, 255, 0.05);
+
+			.view-btn {
+				background: none;
+				border: none;
+				color: rgba(255, 255, 255, 0.4);
+				padding: 6px;
+				cursor: pointer;
+				border-radius: 8px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				aspect-ratio: 1 / 1;
+				transition: all 0.2s;
+
+				&:hover {
+					color: #fff;
+					background: rgba(255, 255, 255, 0.05);
+				}
+
+				&.active {
+					color: #fff;
+					background: rgba(255, 255, 255, 0.1);
+					box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+				}
+			}
+		}
+
+		.help-btn {
+			background: none;
+			border: none;
+			color: rgba(255, 255, 255, 0.2);
+			cursor: pointer;
+			padding: 4px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			transition: all 0.2s;
+			border-radius: 50%;
+
+			&:hover {
+				color: var(--accent-primary, #fff);
+				background: rgba(255, 255, 255, 0.05);
+				transform: scale(1.1);
+			}
+
+			svg {
+				width: 20px;
+				height: 20px;
+			}
+		}
+
+		.search-container {
+			display: flex;
+			align-items: center;
+			background: rgba(255, 255, 255, 0.05);
+			border: 1px solid rgba(255, 255, 255, 0.05);
+			border-radius: 12px;
+			padding: 4px 10px;
+			gap: 8px;
+			flex: 1;
+			transition: all 0.3s;
+
+			&:focus-within {
+				background: rgba(255, 255, 255, 0.1);
+				border-color: rgba(255, 255, 255, 0.2);
+				box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+			}
+
+			.search-icon {
+				color: rgba(255, 255, 255, 0.3);
+			}
+
+			.search-input {
+				background: none;
+				border: none;
+				color: #fff;
+				font-size: 0.9rem;
+				width: 100%;
+				outline: none;
+
+				&::placeholder {
+					color: rgba(255, 255, 255, 0.2);
+				}
+			}
+
+			.clear-search {
+				background: none;
+				border: none;
+				color: rgba(255, 255, 255, 0.3);
+				cursor: pointer;
+				padding: 2px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				border-radius: 4px;
+
+				&:hover {
+					color: #fff;
+					background: rgba(255, 255, 255, 0.1);
+				}
+			}
+		}
+	}
+
+	.help-content {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		color: var(--text-main, #eee);
+
+		section {
+			h3 {
+				margin: 0 0 8px 0;
+				font-size: 1.1rem;
+				color: var(--accent-primary, #fff);
+			}
+
+			p {
+				margin: 0;
+				line-height: 1.6;
+				font-size: 0.95rem;
+				color: var(--text-dim, #aaa);
+
+				strong {
+					color: var(--text-main, #eee);
+				}
+			}
+
+			.help-code {
+				display: block;
+				background: rgba(0, 0, 0, 0.3);
+				padding: 12px;
+				border-radius: 8px;
+				font-family: monospace;
+				font-size: 0.85rem;
+				color: var(--accent-primary, #fff);
+				margin-top: 10px;
+				border: 1px solid rgba(255, 255, 255, 0.05);
+			}
+
+			& + section {
+				padding-top: 16px;
+				border-top: 1px solid rgba(255, 255, 255, 0.05);
+			}
+		}
+	}
+
+	.games-container {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+
+		&.list-view {
+			.games-grid {
+				grid-template-columns: 1fr;
+				gap: 16px;
+			}
+		}
+	}
+
+	.no-results {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		height: 200px;
+		color: rgba(255, 255, 255, 0.4);
+		gap: 10px;
+
+		p {
+			margin: 0;
+			font-size: 1rem;
+		}
+
+		.link-btn {
+			background: none;
+			border: none;
+			color: var(--accent-color, #60a5fa);
+			text-decoration: underline;
+			cursor: pointer;
+			padding: 0;
+			font: inherit;
+			font-weight: 600;
+
+			&:hover {
+				filter: brightness(1.2);
+			}
+		}
+	}
+
 	.games-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+		grid-auto-rows: min-content;
 		gap: 32px;
+		overflow-y: auto;
+		overflow-x: hidden;
+		padding: 10px;
+		flex: 1;
+		min-height: 0;
 	}
 
 	.empty-state {
@@ -520,78 +661,19 @@
 		text-align: center;
 		color: var(--text-muted);
 
-		.link {
-			color: var(--accent-color);
+		.link-btn {
+			background: none;
+			border: none;
+			color: var(--accent-color, #60a5fa);
 			text-decoration: underline;
 			cursor: pointer;
-		}
-	}
-
-	.grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-		gap: 32px;
-	}
-
-	.card {
-		background: rgba(255, 255, 255, 0.02);
-		border: 1px solid var(--glass-border);
-		border-radius: 20px;
-		padding: 24px;
-		transition: all 0.3s;
-		text-align: left;
-
-		.card-header {
-			display: flex;
-			align-items: center;
-			gap: 16px;
-			margin-bottom: 12px;
-		}
-
-		.card-icon {
-			width: 24px;
-			height: 24px;
-			display: flex;
-			align-items: center;
-
-			.svg-icon {
-				width: 100%;
-				height: 100%;
-				filter: invert(72%) sepia(85%) saturate(1008%) hue-rotate(359deg) brightness(101%) contrast(93%);
-			}
-		}
-
-		h3 {
-			font-size: 1.1rem;
-			font-weight: 700;
-			margin: 0;
-			color: #fff;
-		}
-
-		p {
-			font-size: 0.9rem;
-			color: var(--text-muted);
-			margin: 0;
-			line-height: 1.4;
-		}
-
-		&.hoverable {
-			cursor: pointer;
+			padding: 0;
+			font: inherit;
+			font-weight: 600;
 
 			&:hover {
-				background: rgba(255, 255, 255, 0.05);
-				border-color: var(--glass-border-bright);
-				transform: translateY(-4px);
+				filter: brightness(1.2);
 			}
 		}
-
-		&.cleanup-card:hover {
-			border-color: rgba(245, 158, 11, 0.4);
-			background: rgba(245, 158, 11, 0.05);
-		}
-	}
-
-	.text-warning {
-		color: #f59e0b;
 	}
 </style>
