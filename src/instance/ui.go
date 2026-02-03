@@ -37,6 +37,13 @@ func onReady(logPath string) {
 
 	// Start game
 	opts := buildLaunchOptions()
+
+	// Ensure LSFG profile exists if LSFG is enabled
+	if opts.EnableLsfgVk {
+		if err := EnsureLsfgProfileExists(getGameExePath(), opts); err != nil {
+			log.Printf("WARNING: Failed to ensure LSFG profile: %v", err)
+		}
+	}
 	cmdArgs, env := BuildCommand(opts)
 
 	logGameStartup(cmdArgs)
@@ -90,10 +97,21 @@ func onReady(logPath string) {
 	}()
 }
 
+// getGameExePath returns the actual game executable path for LSFG configuration
+// Uses gamePath if set, otherwise falls back to launcherPath
+func getGameExePath() string {
+	if gamePath != "" {
+		return gamePath
+	}
+	return launcherPath
+}
+
 // setupLsfgMenu configures the LSFG-VK configuration menu item
 func setupLsfgMenu() {
 	mLsfgEdit := systray.AddMenuItem("Edit LSFG-VK Config", "Open LSFG-VK configuration")
 	log.Printf("LSFG menu item created, waiting for clicks...")
+
+	gameExe := getGameExePath()
 
 	go func() {
 		for {
@@ -101,11 +119,23 @@ func setupLsfgMenu() {
 			<-mLsfgEdit.ClickedCh
 			log.Printf("LSFG menu handler: click received!")
 
-			profile, idx, err := FindLsfgProfileForGame(gamePath)
+			profile, idx, err := FindLsfgProfileForGame(gameExe)
 			if err != nil {
-				log.Printf("LSFG menu handler: error finding profile: %v", err)
-				sendNotification("LSFG-VK Config", fmt.Sprintf("Could not find profile for this game: %v", err))
-				continue
+				log.Printf("LSFG menu handler: profile not found, attempting to create: %v", err)
+				// Try to create profile with current options
+				opts := buildLaunchOptions()
+				if createErr := EnsureLsfgProfileExists(gameExe, opts); createErr != nil {
+					log.Printf("LSFG menu handler: failed to create profile: %v", createErr)
+					sendNotification("LSFG-VK Config", fmt.Sprintf("Could not create profile for this game: %v", createErr))
+					continue
+				}
+				// Try to find it again
+				profile, idx, err = FindLsfgProfileForGame(gameExe)
+				if err != nil {
+					log.Printf("LSFG menu handler: still failed to find profile after creation: %v", err)
+					sendNotification("LSFG-VK Config", fmt.Sprintf("Could not find profile for this game: %v", err))
+					continue
+				}
 			}
 			log.Printf("Found LSFG profile for game: %s (index: %d)", profile.Name, idx)
 
@@ -141,12 +171,12 @@ func launchLsfgUI() {
 
 	uiCmd := exec.Command(uiBinary)
 	env := os.Environ()
-	env = append(env, fmt.Sprintf("GOPROTON_GAME_PATH=%s", gamePath))
+	env = append(env, fmt.Sprintf("GOPROTON_GAME_PATH=%s", getGameExePath()))
 	env = append(env, "GOPROTON_EDIT_LSFG=1")
 	uiCmd.Env = env
 	uiCmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
-	log.Printf("Launching goproton-ui with GOPROTON_GAME_PATH=%s and GOPROTON_EDIT_LSFG=1", gamePath)
+	log.Printf("Launching goproton-ui with GOPROTON_GAME_PATH=%s and GOPROTON_EDIT_LSFG=1", getGameExePath())
 
 	if err := uiCmd.Start(); err != nil {
 		sendNotification("LSFG-VK Config", fmt.Sprintf("Failed to launch UI: %v", err))

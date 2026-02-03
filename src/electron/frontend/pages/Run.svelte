@@ -22,7 +22,6 @@
 	import ExecutableSelector from "../components/ExecutableSelector.svelte";
 	import { notifications } from "../notificationStore";
 	import { runState } from "../stores/runState";
-	import { navigateToEditLsfg } from "../stores/navigationStore";
 	import { get } from "svelte/store";
 	import { WindowHide } from "../api";
 
@@ -30,7 +29,9 @@
 	let mounted = false;
 
 	// Game Selection
-	let gamePath = "";
+	// selectedGameExePath: tracks only when user EXPLICITLY selects a separate game exe
+	// This is DIFFERENT from options.GamePath which is the actual path to execute
+	let selectedGameExePath = "";
 	let gameIcon = "";
 	let launcherIcon = "";
 	let prefixPath = "";
@@ -173,7 +174,7 @@
 			const s = get(runState);
 			if (s) {
 				if (s.gamePath) {
-					gamePath = s.gamePath;
+					selectedGameExePath = s.gamePath;
 					options.GamePath = s.gamePath;
 				}
 				if (s.gameIcon) gameIcon = s.gameIcon;
@@ -204,7 +205,7 @@
 					if (icon) launcherIcon = icon;
 				} else if (!options.GamePath || options.GamePath === options.LauncherPath) {
 					// Prior state has launcher but no game - set initial path as game
-					gamePath = initialPath;
+					selectedGameExePath = initialPath;
 					options.GamePath = initialPath;
 					const icon = await GetExeIcon(initialPath);
 					if (icon) gameIcon = icon;
@@ -253,7 +254,15 @@
 	});
 
 	onMount(() => {
-		runState.set({ gamePath, gameIcon, launcherIcon, prefixPath, selectedPrefixName, selectedProton, options });
+		runState.set({
+			gamePath: selectedGameExePath,
+			gameIcon,
+			launcherIcon,
+			prefixPath,
+			selectedPrefixName,
+			selectedProton,
+			options,
+		});
 	});
 
 	async function handlePrefixChange(name: string) {
@@ -270,7 +279,7 @@
 			if (path) {
 				console.log("[GAME] Selected game exe:", path);
 				console.log("[GAME] Current LauncherPath before game selection:", options.LauncherPath);
-				gamePath = path;
+				selectedGameExePath = path;
 				// Use object spread to trigger Svelte reactivity
 				options = { ...options, GamePath: path };
 				console.log("[GAME] Set options.GamePath to:", options.GamePath);
@@ -295,14 +304,17 @@
 				console.log("[LAUNCHER] Full options object after assignment:", JSON.stringify(options));
 
 				// Only set GamePath if user has not explicitly selected a separate game exe
-				if (!gamePath) {
+				if (!selectedGameExePath) {
 					console.log(
 						"[LAUNCHER] No separate game exe selected by user, initializing GamePath to launcher",
 					);
 					options = { ...options, GamePath: path };
 					console.log("[LAUNCHER] Set GamePath to launcher path:", options.GamePath);
 				} else {
-					console.log("[LAUNCHER] User already selected separate game exe, keeping GamePath:", gamePath);
+					console.log(
+						"[LAUNCHER] User already selected separate game exe, keeping GamePath:",
+						selectedGameExePath,
+					);
 				}
 
 				// Load config for the launcher
@@ -362,7 +374,7 @@
 		console.log("[EXECUTE] Step 1 - Initial state");
 		console.log("[EXECUTE]   options.LauncherPath:", options.LauncherPath);
 		console.log("[EXECUTE]   options.GamePath:", options.GamePath);
-		console.log("[EXECUTE]   gamePath variable:", gamePath);
+		console.log("[EXECUTE]   selectedGameExePath variable:", selectedGameExePath);
 		console.log("[EXECUTE]   Full options:", JSON.stringify(options));
 
 		const tool = protonVersions.find((p) => p.DisplayName === selectedProton);
@@ -445,17 +457,6 @@
 
 		<ConfigForm bind:options />
 
-		{#if options.EnableLsfgVk && gamePath}
-			<div class="form-group">
-				<button class="btn primary" on:click={() => navigateToEditLsfg(gamePath)}>
-					Open Fullscreen LSFG-VK Editor
-				</button>
-				<p class="help-text" style="margin-top: 8px;">
-					For detailed LSFG-VK configuration and profile management
-				</p>
-			</div>
-		{/if}
-
 		<div class="form-group">
 			<SlideButton bind:checked={showLogsWindow} label="Show Logs" subtitle="Open logs in terminal" />
 		</div>
@@ -517,13 +518,7 @@
 		color: var(--text-muted);
 		margin-bottom: 8px;
 	}
-	.form-group {
-		.help-text {
-			font-size: 0.75rem;
-			color: var(--text-dim);
-			margin: 8px 0 0 0;
-		}
-	}
+
 	.input-group {
 		display: flex;
 		gap: 12px;

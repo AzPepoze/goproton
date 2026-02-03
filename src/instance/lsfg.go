@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
@@ -100,3 +101,100 @@ func matchesProfile(exeName string, activeIn interface{}) bool {
 	return false
 }
 
+// EnsureLsfgProfileExists creates a profile for the game if one doesn't already exist
+// Uses provided options for initial configuration, or defaults if not provided
+func EnsureLsfgProfileExists(gamePath string, opts LaunchOptions) error {
+	configPath, err := GetLsfgConfigPath()
+	if err != nil {
+		return fmt.Errorf("failed to get LSFG config path: %w", err)
+	}
+
+	// Try to find existing profile
+	_, _, err = findLsfgProfileForGameAtPath(gamePath, configPath)
+	if err == nil {
+		// Profile already exists
+		return nil
+	}
+
+	// Profile doesn't exist, create it
+	DebugLog(fmt.Sprintf("Creating new LSFG profile for %s", gamePath))
+
+	exeName := filepath.Base(gamePath)
+
+	// Read existing config or create new one
+	var config LsfgConfigFile
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		// Config doesn't exist, create new
+		config = LsfgConfigFile{
+			Version:  2,
+			Global:   LsfgGlobalConfig{Version: 2, AllowFP16: true, DLL: opts.LsfgDllPath},
+			Profiles: []LsfgConfigProfile{},
+		}
+	} else {
+		// Config exists, try to parse it
+		if err := toml.Unmarshal(data, &config); err != nil {
+			// Parsing failed, start fresh
+			config = LsfgConfigFile{
+				Version:  2,
+				Global:   LsfgGlobalConfig{Version: 2, AllowFP16: true, DLL: opts.LsfgDllPath},
+				Profiles: []LsfgConfigProfile{},
+			}
+		} else {
+			// Successfully parsed - preserve existing global config, only update DLL if provided
+			if opts.LsfgDllPath != "" {
+				config.Global.DLL = opts.LsfgDllPath
+			}
+		}
+	}
+
+	// Parse multiplier from options
+	multiplier := 2
+	if opts.LsfgMultiplier != "" {
+		if m, err := fmt.Sscanf(opts.LsfgMultiplier, "%d", &multiplier); m == 1 && err == nil {
+			// Parsing succeeded
+		}
+	}
+
+	// Create profile name from executable name (without extension)
+	profileName := strings.TrimSuffix(exeName, filepath.Ext(exeName))
+
+	// Parse flow scale from options
+	flowScale := 1.0
+	if opts.LsfgFlowScale != "" {
+		if f, err := strconv.ParseFloat(opts.LsfgFlowScale, 32); err == nil {
+			flowScale = f
+		}
+	}
+
+	// Create new profile with values from options
+	newProfile := LsfgConfigProfile{
+		Name:            profileName,
+		ActiveIn:        exeName,
+		Multiplier:      multiplier,
+		PerformanceMode: opts.LsfgPerfMode,
+		GPU:             opts.LsfgGpu,
+		FlowScale:       float32(flowScale),
+		Pacing:          opts.LsfgPacing,
+	}
+
+	config.Profiles = append(config.Profiles, newProfile)
+
+	// Ensure config directory exists
+	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+		return fmt.Errorf("failed to create LSFG config directory: %w", err)
+	}
+
+	// Write config
+	data, err = toml.Marshal(&config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal LSFG config: %w", err)
+	}
+
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write LSFG config: %w", err)
+	}
+
+	DebugLog(fmt.Sprintf("Successfully created LSFG profile for %s", exeName))
+	return nil
+}

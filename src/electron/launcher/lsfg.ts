@@ -126,7 +126,11 @@ export function saveLsfgProfile(
 
 	let config: LsfgConfigFile = {
 		version: 2,
-		global: { version: 2, allow_fp16: opts.allowFp16 ?? true, dll: opts.dllPath ?? "" },
+		global: {
+			version: 2,
+			allow_fp16: opts.allowFp16 ?? true,
+			dll: (opts.dllPath ?? "").replace(/^['"]|['"]$/g, ""),
+		},
 		profile: [],
 	};
 
@@ -140,7 +144,10 @@ export function saveLsfgProfile(
 
 	// Update global
 	if (opts.allowFp16 !== undefined) config.global.allow_fp16 = opts.allowFp16;
-	if (opts.dllPath !== undefined) config.global.dll = opts.dllPath;
+	if (opts.dllPath !== undefined) {
+		// Remove any quotes from the DLL path
+		config.global.dll = opts.dllPath.replace(/^['"]|['"]$/g, "");
+	}
 
 	const exeName = path.basename(gamePath);
 	const { index } = findLsfgProfileForGame(gamePath);
@@ -152,10 +159,11 @@ export function saveLsfgProfile(
 		performance_mode: opts.performance_mode ?? false,
 		gpu: opts.gpu ?? "auto",
 		flow_scale: opts.flow_scale ?? 1.0,
-		pacing: "none",
+		pacing: opts.pacing ?? "none",
 	};
 
 	if (index !== -1) {
+		// Preserve existing fields and only update provided ones
 		config.profile[index] = { ...config.profile[index], ...newProfile };
 	} else {
 		config.profile.push(newProfile);
