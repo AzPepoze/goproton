@@ -83,6 +83,34 @@ func LoadGameConfig(exePath string) (*LaunchOptions, error) {
 	return &opts, nil
 }
 
+// ListGameConfigs returns a list of all saved game configurations
+func ListGameConfigs() ([]LaunchOptions, error) {
+	configDir := GetConfigDir()
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		return make([]LaunchOptions, 0), nil
+	}
+
+	entries, err := os.ReadDir(configDir)
+	if err != nil {
+		return nil, err
+	}
+
+	configs := make([]LaunchOptions, 0)
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		configPath := filepath.Join(configDir, entry.Name(), "config.json")
+		var opts LaunchOptions
+		if err := loadConfig(configPath, &opts); err == nil {
+			configs = append(configs, opts)
+		}
+	}
+
+	return configs, nil
+}
+
 // SaveLsfgProfile saves an LSFG profile for a game
 func SaveLsfgProfile(gameName string, profile LsfgProfile) error {
 	// Use the main executable path to compute the directory with hash

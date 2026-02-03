@@ -11,6 +11,8 @@
 	import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime";
 	import type { launcher } from "../../wailsjs/go/models";
 
+	import lsfgPng from "../icons/lsfg.png";
+
 	let status: launcher.UtilsStatus = { isLsfgInstalled: false, lsfgVersion: "" };
 	let systemStatus: launcher.SystemToolsStatus & { hasLosslessDll: boolean } = {
 		hasGamescope: false,
@@ -116,7 +118,9 @@
 		<!-- LSFG-VK Card -->
 		<div class="util-card glass">
 			<div class="util-header">
-				<div class="icon-bg">🚀</div>
+				<div class="icon-bg">
+					<img src={lsfgPng} alt="lsfg" class="lsfg-logo" />
+				</div>
 				<div class="title-area">
 					<h3>LSFG-VK</h3>
 					<span class="badge" class:installed={status.isLsfgInstalled}>
@@ -280,6 +284,14 @@
 			align-items: center;
 			justify-content: center;
 			font-size: 1.75rem;
+
+			.lsfg-logo {
+				width: 32px;
+				height: 32px;
+				filter: grayscale(100%) brightness(1.5);
+				opacity: 0.9;
+				object-fit: contain;
+			}
 		}
 
 		.title-area {

@@ -17,6 +17,13 @@
 	import type { launcher } from "../../wailsjs/go/models";
 	import { notifications } from "../notificationStore";
 	import { createLaunchOptions } from "../lib/formService";
+	// Icons
+	import folderIcon from "../icons/folder.svg";
+	import settingsIcon from "../icons/settings.svg";
+	import editIcon from "../icons/edit.svg";
+	import terminalIcon from "../icons/terminal.svg";
+	import magicIcon from "../icons/magic.svg";
+	import chartIcon from "../icons/chart.svg";
 
 	// State
 	let availablePrefixes: string[] = [];
@@ -185,7 +192,9 @@
 						class:active={currentPrefixName === name}
 						on:click={() => selectPrefix(name)}
 					>
-						<span class="folder-icon">📁</span>
+						<span class="folder-icon">
+							<img src={folderIcon} alt="folder" />
+						</span>
 						<span class="name">{name}</span>
 					</button>
 				{/each}
@@ -227,42 +236,42 @@
 
 			<div class="tools-grid">
 				<ToolButton
-					icon="⚙️"
+					icon={settingsIcon}
 					title="Winecfg"
 					subtitle="Settings"
 					loading={runningToolName === "winecfg"}
 					onClick={() => runTool("winecfg")}
 				/>
 				<ToolButton
-					icon="📝"
+					icon={editIcon}
 					title="Regedit"
 					subtitle="Registry"
 					loading={runningToolName === "regedit"}
 					onClick={() => runTool("regedit")}
 				/>
 				<ToolButton
-					icon="💻"
+					icon={terminalIcon}
 					title="CMD"
 					subtitle="Terminal"
 					loading={runningToolName === "cmd"}
 					onClick={() => runTool("cmd")}
 				/>
 				<ToolButton
-					icon="🪄"
+					icon={magicIcon}
 					title="Winetricks"
 					subtitle="Extras"
 					loading={runningToolName === "winetricks"}
 					onClick={() => runTool("winetricks")}
 				/>
 				<ToolButton
-					icon="📊"
+					icon={chartIcon}
 					title="TaskMgr"
 					subtitle="Processes"
 					loading={runningToolName === "taskmgr"}
 					onClick={() => runTool("taskmgr")}
 				/>
 				<ToolButton
-					icon="📂"
+					icon={folderIcon}
 					title="Explorer"
 					subtitle="Files"
 					loading={runningToolName === "explorer"}
@@ -363,6 +372,18 @@
 		}
 		.folder-icon {
 			font-size: 1.1rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 18px;
+			height: 18px;
+
+			img {
+				width: 100%;
+				height: 100%;
+				filter: brightness(0) invert(1);
+				opacity: 0.6;
+			}
 		}
 		.name {
 			flex: 1;

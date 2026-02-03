@@ -4,6 +4,8 @@
 	import MultiplierInput from "./MultiplierInput.svelte";
 	import type { launcher } from "../../wailsjs/go/models";
 
+	import warningIcon from "../icons/warning.svg";
+
 	export let options: launcher.LaunchOptions;
 	export let gpuList: string[] = [];
 	export let onDllBrowse: (() => void) | null = null;
@@ -24,7 +26,10 @@
 			{#if options.LsfgDllPath}
 				<span class="status-badge success">✓ Found</span>
 			{:else}
-				<span class="status-badge error">⚠ Not Set</span>
+				<span class="status-badge error">
+					<img src={warningIcon} alt="warning" class="svg-icon" />
+					Not Set
+				</span>
 			{/if}
 		</label>
 		<div class="input-group">
@@ -196,6 +201,15 @@
 		margin-left: auto;
 		text-transform: uppercase;
 		font-weight: bold;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+
+		.svg-icon {
+			width: 10px;
+			height: 10px;
+			filter: invert(36%) sepia(84%) saturate(4644%) hue-rotate(345deg) brightness(98%) contrast(93%); // #ef4444
+		}
 
 		&.success {
 			background: rgba(16, 185, 129, 0.2);

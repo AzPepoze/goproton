@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -60,6 +61,30 @@ func onReady(logPath string) {
 		return
 	}
 
+	// Internal helper to kill game gracefully
+	killGame := func() {
+		if gameCmd.Process != nil {
+			log.Println("Stopping game process group...")
+			launcher.StopProcessGroup(gameCmd.Process)
+		}
+	}
+
+	// Setup signal handling for graceful shutdown (SIGINT/SIGTERM)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-sigs
+		log.Printf("Received system signal: %v, triggering graceful shutdown...\n", sig)
+		killGame()
+	}()
+
+	// Setup tray kill handler
+	go func() {
+		<-mKill.ClickedCh
+		log.Println("Kill button clicked in tray")
+		killGame()
+	}()
+
 	// Show logs in terminal if enabled
 	if showLogs {
 		startLogTerminal(logPath, gameCmd.Process.Pid)
@@ -71,14 +96,6 @@ func onReady(logPath string) {
 		defer ticker.Stop()
 		for range ticker.C {
 			_ = trimLogFile(logPath, 500)
-		}
-	}()
-
-	// Setup kill handler
-	go func() {
-		<-mKill.ClickedCh
-		if gameCmd.Process != nil {
-			launcher.StopProcessGroup(gameCmd.Process)
 		}
 	}()
 

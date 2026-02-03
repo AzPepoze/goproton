@@ -26,6 +26,8 @@
 	import { WindowHide } from "../../wailsjs/runtime/runtime";
 	import { createLaunchOptions } from "../lib/formService";
 
+	import warningIcon from "../icons/warning.svg";
+
 	// Component State
 	let mounted = false;
 
@@ -96,9 +98,17 @@
 			const config = await LoadPrefixConfig(name);
 			if (config) {
 				const savedMainExePath = options.MainExecutablePath;
+				const savedLauncherPath = options.LauncherPath;
+				const savedHaveGameExe = options.HaveGameExe;
 				const savedPrefixPath = options.PrefixPath;
+
 				applyConfigToOptions(config);
+
+				// Restore Target
 				options.MainExecutablePath = savedMainExePath;
+				options.LauncherPath = savedLauncherPath;
+				options.HaveGameExe = savedHaveGameExe;
+
 				if (savedPrefixPath) options.PrefixPath = savedPrefixPath;
 			}
 		} catch (err) {}
@@ -446,7 +456,9 @@
 
 		<Modal show={showValidationModal} title="Missing Dependencies" onClose={() => (showValidationModal = false)}>
 			<div class="warning-modal-content">
-				<div class="warning-icon">⚠️</div>
+				<div class="warning-icon">
+					<img src={warningIcon} alt="warning" class="svg-icon" />
+				</div>
 				<p>The following requested features are not installed on your system:</p>
 				<div class="missing-list">
 					{#each missingToolsList as tool}
@@ -532,6 +544,15 @@
 		.warning-icon {
 			font-size: 3rem;
 			margin-bottom: 16px;
+			display: flex;
+			justify-content: center;
+
+			.svg-icon {
+				width: 48px;
+				height: 48px;
+				filter: brightness(0) invert(1);
+				opacity: 0.8;
+			}
 		}
 		p {
 			color: var(--text-main);

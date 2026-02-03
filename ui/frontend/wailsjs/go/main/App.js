@@ -22,6 +22,10 @@ export function EditLsfgConfigForGame(arg1) {
   return window['go']['main']['App']['EditLsfgConfigForGame'](arg1);
 }
 
+export function GetAllGames() {
+  return window['go']['main']['App']['GetAllGames']();
+}
+
 export function GetConfig(arg1) {
   return window['go']['main']['App']['GetConfig'](arg1);
 }
@@ -58,6 +62,10 @@ export function GetProtonVariants() {
   return window['go']['main']['App']['GetProtonVariants']();
 }
 
+export function GetRunningSessions() {
+  return window['go']['main']['App']['GetRunningSessions']();
+}
+
 export function GetShouldEditLsfg() {
   return window['go']['main']['App']['GetShouldEditLsfg']();
 }
@@ -80,6 +88,10 @@ export function InstallLsfg() {
 
 export function InstallProtonVersion(arg1, arg2) {
   return window['go']['main']['App']['InstallProtonVersion'](arg1, arg2);
+}
+
+export function KillSession(arg1) {
+  return window['go']['main']['App']['KillSession'](arg1);
 }
 
 export function ListPrefixes() {

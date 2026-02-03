@@ -5,6 +5,9 @@
 	import type { launcher } from "../../wailsjs/go/models";
 	import { notifications } from "../notificationStore";
 
+	import steamIcon from "../icons/steam.png";
+	import forkedIcon from "../icons/protron_forked.png";
+
 	let protonVersions: launcher.ProtonTool[] = [];
 	let isLoading = true;
 
@@ -53,13 +56,15 @@
 		{:else}
 			{#each protonVersions as tool}
 				<div class="version-card">
-					<div class="icon">{tool.IsSteam ? "🚂" : "📦"}</div>
+					<div class="icon">
+						<img src={tool.IsSteam ? steamIcon : forkedIcon} alt="tool" class="tool-icon" />
+					</div>
 					<div class="info">
 						<div class="name">{tool.Name}</div>
 						<div class="path" title={tool.Path}>{tool.Path}</div>
 					</div>
 					<div class="type-badge" class:steam={tool.IsSteam}>
-						{tool.IsSteam ? "Steam" : "Custom"}
+						{tool.IsSteam ? "Steam" : "Forked"}
 					</div>
 				</div>
 			{/each}
@@ -143,6 +148,13 @@
 			align-items: center;
 			justify-content: center;
 			border-radius: 12px;
+
+			.tool-icon {
+				width: 24px;
+				height: 24px;
+				filter: brightness(0) invert(1);
+				opacity: 0.8;
+			}
 		}
 
 		.info {

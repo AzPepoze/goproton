@@ -1,4 +1,6 @@
 <script lang="ts">
+	import warningIcon from "../icons/warning.svg";
+
 	export let value: number = 4;
 	export let min: number = 0.1;
 	export let max: number = 16;
@@ -127,7 +129,10 @@
 	</div>
 
 	{#if isWarning}
-		<div class="warning-text">⚠️ High value may affect system stability</div>
+		<div class="warning-text">
+			<img src={warningIcon} alt="warning" class="svg-icon" />
+			High value may affect system stability
+		</div>
 	{/if}
 </div>
 
@@ -261,5 +266,15 @@
 		font-size: 0.75rem;
 		color: #ef4444;
 		text-align: right;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 6px;
+
+		.svg-icon {
+			width: 14px;
+			height: 14px;
+			filter: invert(36%) sepia(84%) saturate(4644%) hue-rotate(345deg) brightness(98%) contrast(93%); // #ef4444
+		}
 	}
 </style>

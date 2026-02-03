@@ -10,7 +10,13 @@
 	{#if loading}
 		<div class="spinner"></div>
 	{:else}
-		<div class="icon">{icon}</div>
+		<div class="icon">
+			{#if icon.includes("/") || icon.includes(".svg") || icon.startsWith("data:")}
+				<img src={icon} alt={title} class="svg-icon" />
+			{:else}
+				{icon}
+			{/if}
+		</div>
 	{/if}
 	<div class="text">
 		<h3>{title}</h3>
@@ -48,6 +54,18 @@
 
 		.icon {
 			font-size: 1.75rem;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 32px;
+			height: 32px;
+
+			.svg-icon {
+				width: 100%;
+				height: 100%;
+				filter: brightness(0) invert(1);
+				opacity: 0.8;
+			}
 		}
 		h3 {
 			font-size: 1rem;
