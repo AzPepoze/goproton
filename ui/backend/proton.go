@@ -3,7 +3,7 @@ package backend
 import (
 	"goproton/pkg/core"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func (a *App) ScanProtonVersions() ([]core.ProtonTool, error) {
@@ -20,7 +20,7 @@ func (a *App) GetProtonReleases(variantID string) ([]core.GitHubRelease, error) 
 
 func (a *App) InstallProtonVersion(url, version string) error {
 	return core.InstallProton(url, version, func(percent int, msg string) {
-		runtime.EventsEmit(a.ctx, "install-proton-progress", map[string]interface{}{
+		application.Get().Event.Emit("install-proton-progress", map[string]interface{}{
 			"percent": percent,
 			"message": msg,
 		})

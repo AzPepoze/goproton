@@ -3,8 +3,8 @@
 	import Modal from "./Modal.svelte";
 	import RangeSlider from "./RangeSlider.svelte";
 	import LsfgConfigForm from "./LsfgConfigForm.svelte";
-	import { PickFileCustom, GetTotalRam } from "../../wailsjs/go/backend/App";
-	import type { core } from "../../wailsjs/go/models";
+	import { PickFileCustom, GetTotalRam } from "../../bindings/goproton-wails/backend/app";
+	import * as core from "../../bindings/goproton/pkg/core/models";
 	import { onMount } from "svelte";
 	import { loadLsfgResources, parseMemoryValue } from "../lib/formService";
 

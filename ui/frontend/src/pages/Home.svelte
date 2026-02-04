@@ -6,7 +6,7 @@
 		RunGame,
 		ListPrefixes,
 		RemoveGame,
-	} from "../../wailsjs/go/backend/App";
+	} from "../../bindings/goproton-wails/backend/app";
 	import { onMount, onDestroy } from "svelte";
 	import { fly, fade } from "svelte/transition";
 	import { notifications } from "../notificationStore";

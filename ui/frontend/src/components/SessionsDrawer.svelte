@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fly } from "svelte/transition";
-	import { KillSession } from "../../wailsjs/go/backend/App";
+	import { KillSession } from "../../bindings/goproton-wails/backend/app";
 	import { notifications } from "../notificationStore";
 	import { createEventDispatcher } from "svelte";
 

@@ -2,7 +2,7 @@
 	import Dropdown from "./Dropdown.svelte";
 	import SlideButton from "./SlideButton.svelte";
 	import MultiplierInput from "./MultiplierInput.svelte";
-	import type { core } from "../../wailsjs/go/models";
+	import * as core from "../../bindings/goproton/pkg/core/models";
 
 	import warningIcon from "../icons/warning.svg";
 

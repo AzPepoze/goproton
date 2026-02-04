@@ -10,7 +10,7 @@ import (
 
 	"goproton/pkg/core"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 type LsfgProfileData struct {
@@ -38,6 +38,9 @@ type RunningSession struct {
 	GameName string `json:"gameName"`
 }
 
+// App struct
+//
+//wails:service
 type App struct {
 	ctx context.Context
 }
@@ -63,8 +66,7 @@ func (a *App) GetShouldEditLsfg() bool {
 }
 
 func (a *App) CloseWindow() {
-	runtime.Quit(a.ctx)
-	os.Exit(0)
+	application.Get().Quit()
 }
 
 func (a *App) GetExeIcon(exePath string) string {

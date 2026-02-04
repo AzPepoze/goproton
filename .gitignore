@@ -12,12 +12,15 @@ vendor/
 *.out
 
 # Wails / Build
+ui/bin/
 ui/build/bin/
+.task/
+ui/.task/
 ui/frontend/dist/
 ui/frontend/node_modules/
+ui/frontend/bindings/
 ui/frontend/.svelte-kit/
 ui/frontend/.vercel/
-ui/frontend/wailsjs
 
 # IDEs
 .vscode/

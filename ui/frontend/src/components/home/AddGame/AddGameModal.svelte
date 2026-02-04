@@ -6,7 +6,7 @@
 		SaveGameConfig,
 		ListPrefixes,
 		GetPrefixBaseDir,
-	} from "../../../../wailsjs/go/backend/App";
+	} from "../../../../bindings/goproton-wails/backend/app";
 	import { notifications } from "../../../notificationStore";
 	import { loadExeIcon } from "../../../lib/iconService";
 	import SelectionView from "./SelectionView.svelte";

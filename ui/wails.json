@@ -1,5 +1,5 @@
 {
-	"$schema": "https://wails.io/schemas/config.v2.json",
+	"$schema": "https://wails.io/schemas/config.v3.json",
 	"name": "goproton",
 	"outputfilename": "goproton",
 	"frontend:install": "pnpm install",
@@ -9,5 +9,10 @@
 	"author": {
 		"name": "AzPepoze",
 		"email": "azpepoze@gmail.com"
+	},
+	"bindings": {
+		"typescript": {
+			"outputdir": "frontend/bindings"
+		}
 	}
 }

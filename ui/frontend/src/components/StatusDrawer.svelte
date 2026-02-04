@@ -6,8 +6,8 @@
 		CleanupProcesses,
 		GetShaderCacheSize,
 		ClearShaderCache,
-	} from "../../wailsjs/go/backend/App";
-	import type { core } from "../../wailsjs/go/models";
+	} from "../../bindings/goproton-wails/backend/app";
+	import * as core from "../../bindings/goproton/pkg/core/models";
 	import trashIcon from "../icons/trash.svg";
 	import rocketIcon from "../icons/rocket.svg";
 	import StatusUtilityButton from "./StatusUtilityButton.svelte";

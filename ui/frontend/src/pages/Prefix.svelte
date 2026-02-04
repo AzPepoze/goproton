@@ -10,11 +10,11 @@
 		SavePrefixConfig,
 		LoadPrefixConfig,
 		GetSystemToolsStatus,
-	} from "../../wailsjs/go/backend/App";
+	} from "../../bindings/goproton-wails/backend/app";
 	import Dropdown from "../components/Dropdown.svelte";
 	import ConfigForm from "../components/ConfigForm.svelte";
 	import ToolButton from "../components/ToolButton.svelte";
-	import type { core } from "../../wailsjs/go/models";
+	import * as core from "../../bindings/goproton/pkg/core/models";
 	import { notifications } from "../notificationStore";
 	import { createLaunchOptions } from "../lib/formService";
 	// Icons

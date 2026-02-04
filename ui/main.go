@@ -8,9 +8,7 @@ import (
 
 	"goproton-wails/backend"
 
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 //go:embed all:frontend/dist
@@ -30,19 +28,23 @@ func main() {
 
 	app := backend.NewApp()
 
-	err := wails.Run(&options.App{
-		Title:  "GoProton",
-		Width:  1024,
-		Height: 768,
-		AssetServer: &assetserver.Options{
-			Assets: assets,
-		},
-		BackgroundColour: &options.RGBA{R: 24, G: 24, B: 27, A: 1},
-		OnStartup:        app.Startup,
-		Bind: []interface{}{
-			app,
+	wailsApp := application.New(application.Options{
+		Name: "GoProton",
+		Assets: application.AssetOptions{
+			Handler: application.AssetFileServerFS(assets),
 		},
 	})
+
+	wailsApp.Window.NewWithOptions(application.WebviewWindowOptions{
+		Title:            "GoProton",
+		Width:            1024,
+		Height:           768,
+		BackgroundColour: application.NewRGB(24, 24, 27),
+	})
+
+	wailsApp.RegisterService(application.NewService(app))
+
+	err := wailsApp.Run()
 
 	if err != nil {
 		println("Error:", err.Error())

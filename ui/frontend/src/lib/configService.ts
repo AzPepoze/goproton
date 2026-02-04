@@ -1,4 +1,4 @@
-import type { core } from "../../wailsjs/go/models";
+import * as core from "../../bindings/goproton/pkg/core/models";
 
 export interface ConfigLoadResult {
 	success: boolean;

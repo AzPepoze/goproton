@@ -1,5 +1,5 @@
 import { writable } from "svelte/store";
-import type { core } from "../../wailsjs/go/models";
+import * as core from "../../bindings/goproton/pkg/core/models";
 import { DEFAULT_LAUNCH_OPTIONS } from "../lib/constants";
 
 export interface RunState {

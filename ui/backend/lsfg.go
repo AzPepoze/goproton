@@ -8,7 +8,7 @@ import (
 	"goproton/pkg/lsfg_utils"
 
 	"github.com/pelletier/go-toml/v2"
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 func (a *App) GetUtilsStatus() core.UtilsStatus {
@@ -20,7 +20,7 @@ func (a *App) GetUtilsStatus() core.UtilsStatus {
 
 func (a *App) InstallLsfg() error {
 	return lsfg_utils.Install(func(percent int, msg string) {
-		runtime.EventsEmit(a.ctx, "lsfg-install-progress", map[string]interface{}{
+		application.Get().Event.Emit("lsfg-install-progress", map[string]interface{}{
 			"percent": percent,
 			"message": msg,
 		})

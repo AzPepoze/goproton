@@ -8,7 +8,11 @@
 	import EditLsfg from "./pages/EditLsfg.svelte";
 	import NotificationHost from "./components/NotificationHost.svelte";
 	import { fade, fly } from "svelte/transition";
-	import { GetInitialLauncherPath, GetInitialGamePath, GetShouldEditLsfg } from "../wailsjs/go/backend/App";
+	import {
+		GetInitialLauncherPath,
+		GetInitialGamePath,
+		GetShouldEditLsfg,
+	} from "../bindings/goproton-wails/backend/app";
 	import { onMount } from "svelte";
 	import { navigationCommand } from "./stores/navigationStore";
 	import { runState } from "./stores/runState";

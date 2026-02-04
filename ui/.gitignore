@@ -1,3 +1,10 @@
 build/bin
+bin/
 node_modules
+.task/
 frontend/dist
+frontend/bindings
+# Generated build assets
+build/linux/*.desktop
+build/darwin/icons.icns
+build/windows/icon.ico

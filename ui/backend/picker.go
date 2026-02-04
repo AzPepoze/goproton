@@ -7,10 +7,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-func (a *App) runSystemPicker(title string, folder bool, filters []runtime.FileFilter) (string, bool) {
+func (a *App) runSystemPicker(title string, folder bool, filters []application.FileFilter) (string, bool) {
 	if _, err := exec.LookPath("zenity"); err == nil {
 		args := []string{"--file-selection", "--title=" + title}
 		if folder {
@@ -121,20 +121,20 @@ func (a *App) SearchExecutables(folderPath string, maxDepth int, excludeNames []
 }
 
 func (a *App) PickFile() (string, error) {
-	if path, ok := a.runSystemPicker("Select Game Executable", false, []runtime.FileFilter{
+	if path, ok := a.runSystemPicker("Select Game Executable", false, []application.FileFilter{
 		{DisplayName: "Executables (*.exe)", Pattern: "*.exe"},
 		{DisplayName: "All Files", Pattern: "*.*"},
 	}); ok {
 		return path, nil
 	}
 
-	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+	return application.Get().Dialog.OpenFileWithOptions(&application.OpenFileDialogOptions{
 		Title: "Select Game Executable",
-		Filters: []runtime.FileFilter{
+		Filters: []application.FileFilter{
 			{DisplayName: "Executables (*.exe)", Pattern: "*.exe"},
 			{DisplayName: "All Files", Pattern: "*.*"},
 		},
-	})
+	}).PromptForSingleSelection()
 }
 
 func (a *App) PickFolder() (string, error) {
@@ -142,18 +142,20 @@ func (a *App) PickFolder() (string, error) {
 		return path, nil
 	}
 
-	return runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Select Directory",
-	})
+	return application.Get().Dialog.OpenFileWithOptions(&application.OpenFileDialogOptions{
+		Title:                "Select Directory",
+		CanChooseDirectories: true,
+		CanChooseFiles:       false,
+	}).PromptForSingleSelection()
 }
 
-func (a *App) PickFileCustom(title string, filters []runtime.FileFilter) (string, error) {
+func (a *App) PickFileCustom(title string, filters []application.FileFilter) (string, error) {
 	if path, ok := a.runSystemPicker(title, false, filters); ok {
 		return path, nil
 	}
 
-	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+	return application.Get().Dialog.OpenFileWithOptions(&application.OpenFileDialogOptions{
 		Title:   title,
 		Filters: filters,
-	})
+	}).PromptForSingleSelection()
 }

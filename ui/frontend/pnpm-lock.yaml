@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@wailsio/runtime':
+        specifier: 3.0.0-alpha.79
+        version: 3.0.0-alpha.79
     devDependencies:
       '@sveltejs/vite-plugin-svelte':
         specifier: ^6.2.4
@@ -442,6 +446,9 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+
+  '@wailsio/runtime@3.0.0-alpha.79':
+    resolution: {integrity: sha512-NITzxKmJsMEruc39L166lbPJVECxzcbdqpHVqOOF7Cu/7Zqk/e3B/gNpkUjhNyo5rVb3V1wpS8oEgLUmpu1cwA==}
 
   acorn@8.15.0:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
@@ -960,6 +967,8 @@ snapshots:
   '@tsconfig/svelte@5.0.6': {}
 
   '@types/estree@1.0.8': {}
+
+  '@wailsio/runtime@3.0.0-alpha.79': {}
 
   acorn@8.15.0: {}
 

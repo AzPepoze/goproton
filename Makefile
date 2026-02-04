@@ -2,7 +2,7 @@ BINARY_NAME=goproton
 INSTANCE_BIN=goproton-instance
 BIN_DIR=bin
 PROJECT_DIR=ui
-WAILS_BIN=$(shell go env GOPATH)/bin/wails
+WAILS_BIN=$(shell go env GOPATH)/bin/wails3
 
 build: build-instance build-ui
 
@@ -10,14 +10,14 @@ build-instance:
 	go build -o $(BIN_DIR)/$(INSTANCE_BIN) cmd/instance/*.go
 
 build-ui: generate-bindings
-	cd $(PROJECT_DIR) && $(WAILS_BIN) build
-	mv $(PROJECT_DIR)/build/bin/$(BINARY_NAME) $(BIN_DIR)/$(BINARY_NAME)
+	cd $(PROJECT_DIR) && PATH="$(shell go env GOPATH)/bin:$(PATH)" $(WAILS_BIN) build
+	mv $(PROJECT_DIR)/bin/$(BINARY_NAME) $(BIN_DIR)/$(BINARY_NAME)
 
 generate-bindings:
-	cd $(PROJECT_DIR) && $(WAILS_BIN) generate bindings
+	cd $(PROJECT_DIR) && PATH="$(shell go env GOPATH)/bin:$(PATH)" $(WAILS_BIN) generate bindings
 
 dev: build-instance
-	cd $(PROJECT_DIR) && $(WAILS_BIN) dev
+	cd $(PROJECT_DIR) && PATH="$(shell go env GOPATH)/bin:$(PATH)" $(WAILS_BIN) dev
 
 clean:
 	rm -rf $(BIN_DIR)

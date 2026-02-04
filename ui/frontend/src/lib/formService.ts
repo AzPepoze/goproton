@@ -1,5 +1,5 @@
-import type { core } from "../../wailsjs/go/models";
-import { GetListGpus, DetectLosslessDll } from "../../wailsjs/go/backend/App";
+import * as core from "../../bindings/goproton/pkg/core/models";
+import { GetListGpus, DetectLosslessDll } from "../../bindings/goproton-wails/backend/app";
 import { DEFAULT_LAUNCH_OPTIONS } from "./constants";
 
 export interface FormState<T> {
@@ -33,10 +33,7 @@ export function resetFormState<T>(state: FormState<T>, defaults: T): void {
 /**
  * Merges loaded data with existing options while preserving defaults
  */
-export function mergeOptions(
-	existing: core.LaunchOptions,
-	loaded: Partial<core.LaunchOptions>,
-): core.LaunchOptions {
+export function mergeOptions(existing: core.LaunchOptions, loaded: Partial<core.LaunchOptions>): core.LaunchOptions {
 	return {
 		...existing,
 		...loaded,

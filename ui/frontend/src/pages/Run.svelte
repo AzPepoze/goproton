@@ -13,8 +13,8 @@
 		GetInitialLauncherPath,
 		DetectLosslessDll,
 		GetExeIcon,
-	} from "../../wailsjs/go/backend/App";
-	import type { core } from "../../wailsjs/go/models";
+	} from "../../bindings/goproton-wails/backend/app";
+	import * as core from "../../bindings/goproton/pkg/core/models";
 	import Dropdown from "../components/Dropdown.svelte";
 	import ConfigForm from "../components/ConfigForm.svelte";
 	import SlideButton from "../components/SlideButton.svelte";
@@ -23,7 +23,7 @@
 	import { notifications } from "../notificationStore";
 	import { runState } from "../stores/runState";
 	import { get } from "svelte/store";
-	import { WindowHide } from "../../wailsjs/runtime/runtime";
+	import { Window } from "@wailsio/runtime";
 	import { createLaunchOptions } from "../lib/formService";
 
 	import warningIcon from "../icons/warning.svg";
@@ -392,7 +392,7 @@
 			console.log("[EXECUTE] Calling RunGame with MainExecutablePath:", options.MainExecutablePath);
 			console.log("[EXECUTE] Calling RunGame with full options:", JSON.stringify(options, null, 2));
 			await RunGame(options, showLogsWindow);
-			WindowHide();
+			Window.Get().Hide();
 		} catch (err) {
 			console.error("[EXECUTE] Launch failed:", err);
 			notifications.add(`Launch failed: ${err}`, "error");

@@ -6,10 +6,10 @@
 		UninstallLsfg,
 		GetSystemToolsStatus,
 		DetectLosslessDll,
-	} from "../../wailsjs/go/backend/App";
+	} from "../../bindings/goproton-wails/backend/app";
 	import { notifications } from "../notificationStore";
-	import { EventsOn, EventsOff } from "../../wailsjs/runtime/runtime";
-	import type { core } from "../../wailsjs/go/models";
+	import { Events } from "@wailsio/runtime";
+	import * as core from "../../bindings/goproton/pkg/core/models";
 
 	import lsfgPng from "../icons/lsfg.png";
 
@@ -38,14 +38,14 @@
 
 	onMount(() => {
 		loadStatus();
-		EventsOn("lsfg-install-progress", (data: any) => {
+		Events.On("lsfg-install-progress", (data: any) => {
 			progressMessage = data.message;
 			progressPercent = data.percent;
 		});
 	});
 
 	onDestroy(() => {
-		EventsOff("lsfg-install-progress");
+		Events.Off("lsfg-install-progress");
 	});
 
 	async function handleInstall() {

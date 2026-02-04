@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { ScanProtonVersions } from "../../wailsjs/go/backend/App";
-	import { BrowserOpenURL } from "../../wailsjs/runtime/runtime";
-	import type { core } from "../../wailsjs/go/models";
+	import { ScanProtonVersions } from "../../bindings/goproton-wails/backend/app";
+	import { Browser } from "@wailsio/runtime";
+	import * as core from "../../bindings/goproton/pkg/core/models";
 	import { notifications } from "../notificationStore";
 
 	import steamIcon from "../icons/steam.png";
@@ -28,7 +28,7 @@
 	}
 
 	function openExternal(url: string) {
-		BrowserOpenURL(url);
+		Browser.OpenURL(url);
 	}
 </script>
 
