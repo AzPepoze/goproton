@@ -1,13 +1,13 @@
 BINARY_NAME=goproton
 INSTANCE_BIN=goproton-instance
 BIN_DIR=bin
-PROJECT_DIR=ui
+PROJECT_DIR=src/ui
 WAILS_BIN=$(shell go env GOPATH)/bin/wails3
 
 build: build-instance build-ui
 
 build-instance:
-	go build -o $(BIN_DIR)/$(INSTANCE_BIN) cmd/instance/*.go
+	cd src && go build -o ../$(BIN_DIR)/$(INSTANCE_BIN) instance/*.go
 
 build-ui: generate-bindings
 	cd $(PROJECT_DIR) && PATH="$(shell go env GOPATH)/bin:$(PATH)" $(WAILS_BIN) build

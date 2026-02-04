@@ -392,7 +392,7 @@
 			console.log("[EXECUTE] Calling RunGame with MainExecutablePath:", options.MainExecutablePath);
 			console.log("[EXECUTE] Calling RunGame with full options:", JSON.stringify(options, null, 2));
 			await RunGame(options, showLogsWindow);
-			Window.Get().Hide();
+			Window.Close();
 		} catch (err) {
 			console.error("[EXECUTE] Launch failed:", err);
 			notifications.add(`Launch failed: ${err}`, "error");

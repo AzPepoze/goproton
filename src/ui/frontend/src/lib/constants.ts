@@ -1,7 +1,6 @@
 import * as core from "../../bindings/goproton/pkg/core/models";
 
 export const DEFAULT_LAUNCH_OPTIONS: core.LaunchOptions = {
-	convertImportFormat: () => "",
 	...({
 		MainExecutablePath: "",
 		LauncherPath: "",
