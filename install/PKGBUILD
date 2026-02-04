@@ -6,8 +6,8 @@ pkgdesc="Proton Instance Manager for Linux - Run Windows games with umu-run"
 arch=('x86_64')
 url="https://github.com/AzPepoze/goproton"
 license=('MIT')
-depends=('umu-launcher' 'steam')
-makedepends=('go' 'nodejs' 'git')
+depends=('umu-launcher' 'steam' 'webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
+makedepends=('go' 'pnpm' 'git')
 optdepends=('protonplus: recommended for managing Proton versions')
 source=("$pkgname::git+https://github.com/AzPepoze/goproton.git#branch=main")
 sha256sums=('SKIP')
@@ -20,8 +20,10 @@ pkgver() {
 
 prepare() {
 	cd "$srcdir/$pkgname"
-	# Vendor all Go modules
-	go mod vendor
+	# Ensure Wails v3 is installed for the build process
+	export GOPATH="${BUILDDIR}/go"
+	export PATH="${GOPATH}/bin:$PATH"
+	go install github.com/wailsapp/wails/v3/cmd/wails@latest
 }
 
 build() {
@@ -29,32 +31,17 @@ build() {
 	
 	# Set isolated build environment
 	export GOPATH="${BUILDDIR}/go"
-	export npm_config_cache="${BUILDDIR}/npm-cache"
-	export npm_config_prefix="${BUILDDIR}/npm-prefix"
 	export PATH="${GOPATH}/bin:$PATH"
-	mkdir -p "${GOPATH}" "${npm_config_cache}" "${npm_config_prefix}"
 	
-	# Install wails CLI
-	go install github.com/wailsapp/wails/v2/cmd/wails@latest
-	
-	# Install frontend dependencies
-	cd ui/frontend
-	npm install --preferred-offline --no-audit --no-fund --verbose
-	cd ../..
-	
-	# Build using Makefile
-	make build
+	# Build using the modernized Makefile and Wails v3
+	make dist
 }
 
 package() {
 	cd "$srcdir/$pkgname"
 	
-	# Install binaries
-	install -Dm755 bin/goproton "$pkgdir/usr/bin/goproton"
-	install -Dm755 bin/goproton-instance "$pkgdir/usr/bin/goproton-instance"
-	
-	# Install desktop file
-	install -Dm644 install/goproton.desktop "$pkgdir/usr/share/applications/goproton.desktop"
+	# Use the dist folder structure created by 'make dist'
+	cp -r dist/linux/* "$pkgdir/usr/"
 	
 	# Install license
 	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
@@ -75,6 +62,3 @@ post_upgrade() {
 	echo "==> GoProton upgraded successfully!"
 	echo "==> Run 'goproton' to start the launcher"
 }
-
-# Clean up Go build cache after building
-trap 'cd / && chmod -R u+w "$srcdir/$pkgname/go" 2>/dev/null || true; rm -rf "$srcdir/$pkgname/go" 2>/dev/null || true' EXIT

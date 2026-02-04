@@ -1,5 +1,6 @@
 # Binaries
 /bin
+/dist
 
 # Go
 vendor/
@@ -12,15 +13,17 @@ vendor/
 *.out
 
 # Wails / Build
-src/ui/bin/
-src/ui/build/bin/
+/src/ui/bin/
+/src/ui/build/bin/
+/src/ui/build/linux/*.desktop
+/src/ui/build/linux/appimage/build/
 .task/
-src/ui/.task/
-src/ui/frontend/dist/
-src/ui/frontend/node_modules/
-src/ui/frontend/bindings/
-src/ui/frontend/.svelte-kit/
-src/ui/frontend/.vercel/
+/src/ui/.task/
+/src/ui/frontend/dist/
+/src/ui/frontend/node_modules/
+/src/ui/frontend/bindings/
+/src/ui/frontend/.svelte-kit/
+/src/ui/frontend/.vercel/
 
 # IDEs
 .vscode/
