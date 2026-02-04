@@ -41,7 +41,7 @@
 
 		<div class="actions">
 			<button class="btn secondary" on:click={() => openExternal("https://protondb.com")}> ProtonDB </button>
-			<button class="btn secondary" on:click={() => openExternal("https://github.com/Vulong000/ProtonPlus")}>
+			<button class="btn secondary" on:click={() => openExternal("https://github.com/Vysp3r/ProtonPlus")}>
 				ProtonPlus
 			</button>
 			<button class="btn secondary" on:click={() => openExternal("https://github.com/DavidoTek/ProtonUp-Qt")}>
