@@ -1,0 +1,71 @@
+# Maintainer: AzPepoze
+pkgname=goproton
+pkgver=r0.git
+pkgrel=1
+pkgdesc="Proton Instance Manager for Linux - Run Windows games with umu-run"
+arch=('x86_64')
+url="https://github.com/AzPepoze/goproton"
+license=('MIT')
+depends=('umu-launcher' 'steam' 'webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
+makedepends=('go' 'pnpm' 'git' 'nodejs')
+optdepends=('protonplus: recommended for managing Proton versions')
+source=("$pkgname::git+https://github.com/AzPepoze/goproton.git#branch=main"
+        "goproton.install::https://raw.githubusercontent.com/AzPepoze/goproton/main/install/arch/goproton.install")
+sha256sums=('SKIP' 'SKIP')
+
+# Reference external install script for post-install messages
+install=goproton.install
+
+pkgver() {
+	cd "$srcdir/$pkgname"
+	# Get version from git tags/commits
+	printf "r%s.g%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+	cd "$srcdir/$pkgname"
+	
+	# Set up isolated Go environment
+	export GOPATH="${srcdir}/go-path"
+	export GOMODCACHE="${srcdir}/go-mod-cache"
+	export PATH="${GOPATH}/bin:$PATH"
+	
+	# Install Wails v3 CLI locally for the build process
+	go install github.com/wailsapp/wails/v3/cmd/wails@latest
+}
+
+build() {
+	cd "$srcdir/$pkgname"
+	
+	# Set up isolated Go environment
+	export GOPATH="${srcdir}/go-path"
+	export GOMODCACHE="${srcdir}/go-mod-cache"
+	export PATH="${GOPATH}/bin:$PATH"
+	
+	# Configure pnpm Store and Cache within srcdir to avoid Permission issues
+	export pnpm_config_store_dir="$srcdir/pnpm-store"
+	export pnpm_config_cache_dir="$srcdir/pnpm-cache"
+	
+	# Build using Makefile and Wails v3
+	make dist
+}
+
+package() {
+	cd "$srcdir/$pkgname"
+	
+	# Install Binaries
+	install -Dm755 "dist/linux/bin/goproton" "$pkgdir/usr/bin/goproton"
+	install -Dm755 "dist/linux/bin/goproton-instance" "$pkgdir/usr/bin/goproton-instance"
+	
+	# Install Desktop Entry
+	install -Dm644 "dist/linux/share/applications/goproton.desktop" "$pkgdir/usr/share/applications/goproton.desktop"
+	
+	# Install Icon
+	install -Dm644 "dist/linux/share/icons/hicolor/128x128/apps/goproton.png" "$pkgdir/usr/share/icons/hicolor/128x128/apps/goproton.png"
+	
+	# Install License
+	install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+	
+	# Install Documentation
+	install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}
