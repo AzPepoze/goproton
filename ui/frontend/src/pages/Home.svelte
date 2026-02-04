@@ -414,9 +414,9 @@
 								{isSelectionMode}
 								isSelected={selectedPaths.has(game.path || game.config.LauncherPath)}
 								view={currentView}
-								on:launch={() => handleQuickLaunch(game)}
-								on:configure={() => handleConfigure(game)}
-								on:select={() => toggleGameSelection(game)}
+								onLaunch={() => handleQuickLaunch(game)}
+								onConfigure={() => handleConfigure(game)}
+								onSelect={() => toggleGameSelection(game)}
 							/>
 						{/each}
 					</div>

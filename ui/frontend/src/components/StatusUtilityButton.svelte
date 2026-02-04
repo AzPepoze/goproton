@@ -7,12 +7,10 @@
 	export let isPulsing = false;
 	export let showSuccess = false;
 	export let btnClass = "";
-
-	import { createEventDispatcher } from "svelte";
-	const dispatch = createEventDispatcher();
+	export let onclick: () => void = () => {};
 </script>
 
-<button class="util-btn {btnClass}" class:pulsing={isPulsing} on:click={() => dispatch("click")}>
+<button class="util-btn {btnClass}" class:pulsing={isPulsing} on:click={onclick}>
 	<div class="content-left">
 		<img src={icon} alt="" />
 		<div class="btn-stack">

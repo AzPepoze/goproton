@@ -1,23 +1,21 @@
 <script lang="ts">
-	import { createEventDispatcher } from "svelte";
 	import rocketIcon from "../../../icons/rocket.svg";
 
 	export let game: any;
 	export let icon: string = "";
 	export let isRunning: boolean = false;
 	export let active: boolean = false;
-
-	const dispatch = createEventDispatcher();
+	export let onLaunch: (game: any) => void = () => {};
+	export let onConfigure: (game: any) => void = () => {};
 
 	function handleLaunch() {
-		dispatch("launch", game);
+		onLaunch(game);
 	}
 
 	function handleConfigure() {
-		dispatch("configure", game);
+		onConfigure(game);
 	}
 </script>
-
 <div class="perspective-card" class:active class:running={isRunning}>
 	<div
 		class="card-inner"

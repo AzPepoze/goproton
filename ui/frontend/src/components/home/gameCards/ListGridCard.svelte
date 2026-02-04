@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { createEventDispatcher } from "svelte";
 	import playIcon from "../../../icons/play.svg";
 	import settingsIcon from "../../../icons/settings.svg";
 	import rocketIcon from "../../../icons/rocket.svg";
@@ -9,19 +8,20 @@
 	export let isRunning: boolean = false;
 	export let isSelectionMode: boolean = false;
 	export let isSelected: boolean = false;
-
-	const dispatch = createEventDispatcher();
+	export let onLaunch: (game: any) => void = () => {};
+	export let onConfigure: (game: any) => void = () => {};
+	export let onSelect: (game: any) => void = () => {};
 
 	function handleLaunch() {
 		if (isSelectionMode) {
-			dispatch("select", game);
+			onSelect(game);
 			return;
 		}
-		dispatch("launch", game);
+		onLaunch(game);
 	}
 
 	function handleConfigure() {
-		dispatch("configure", game);
+		onConfigure(game);
 	}
 </script>
 

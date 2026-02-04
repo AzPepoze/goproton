@@ -10,12 +10,33 @@
 	export let active: boolean = false; // For perspective view
 	export let isSelectionMode: boolean = false;
 	export let isSelected: boolean = false;
+	export let onLaunch: (game: any) => void = () => {};
+	export let onConfigure: (game: any) => void = () => {};
+	export let onSelect: (game: any) => void = () => {};
 </script>
 
 {#if view === "grid"}
-	<GridCard {game} {icon} {isRunning} {isSelectionMode} {isSelected} on:launch on:configure on:select />
+	<GridCard
+		{game}
+		{icon}
+		{isRunning}
+		{isSelectionMode}
+		{isSelected}
+		{onLaunch}
+		{onConfigure}
+		{onSelect}
+	/>
 {:else if view === "list-grid"}
-	<ListGridCard {game} {icon} {isRunning} {isSelectionMode} {isSelected} on:launch on:configure on:select />
+	<ListGridCard
+		{game}
+		{icon}
+		{isRunning}
+		{isSelectionMode}
+		{isSelected}
+		{onLaunch}
+		{onConfigure}
+		{onSelect}
+	/>
 {:else}
-	<PerspectiveCard {game} {icon} {isRunning} {active} on:launch on:configure />
+	<PerspectiveCard {game} {icon} {isRunning} {active} {onLaunch} {onConfigure} />
 {/if}

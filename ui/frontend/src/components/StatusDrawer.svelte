@@ -253,7 +253,7 @@
 				isPulsing={isCleaning}
 				showSuccess={showCleanupSuccess}
 				btnClass="cleanup"
-				on:click={handleCleanup}
+				onclick={handleCleanup}
 			/>
 
 			<StatusUtilityButton
@@ -263,7 +263,7 @@
 				isPulsing={isClearingCache}
 				showSuccess={showCacheSuccess}
 				btnClass="cache"
-				on:click={handleClearCache}
+				onclick={handleClearCache}
 			/>
 		</div>
 	</div>
