@@ -31,7 +31,7 @@ prepare() {
 	export PATH="${GOPATH}/bin:$PATH"
 	
 	# Install Wails v3 CLI locally for the build process
-	go install github.com/wailsapp/wails/v3/cmd/wails@latest
+	go install github.com/wailsapp/wails/v3/cmd/wails3@latest
 }
 
 build() {

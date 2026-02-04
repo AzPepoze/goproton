@@ -73,7 +73,8 @@ GoProton is a dedicated launcher designed to run non-Steam games on Linux using 
 ```bash
 # Download and install using makepkg
 mkdir -p /tmp/goproton && cd /tmp/goproton
-curl -O https://raw.githubusercontent.com/AzPepoze/goproton/main/install/arch/PKGBUILD
+curl -L -O https://raw.githubusercontent.com/AzPepoze/goproton/main/install/arch/PKGBUILD
+curl -L -O https://raw.githubusercontent.com/AzPepoze/goproton/main/install/arch/goproton.install
 makepkg -si
 cd .. && sudo rm -rf goproton
 ```
