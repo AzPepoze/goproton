@@ -5,7 +5,10 @@ DIST_DIR=dist
 PROJECT_DIR=src/ui
 WAILS_BIN=$(shell go env GOPATH)/bin/wails3
 
-build: build-instance build-ui
+build:
+	mkdir -p $(BIN_DIR)
+	$(MAKE) build-instance
+	$(MAKE) build-ui
 
 build-instance:
 	cd src && go build -o ../$(BIN_DIR)/$(INSTANCE_BIN) instance/*.go
