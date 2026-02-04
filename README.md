@@ -34,13 +34,32 @@ GoProton is a dedicated launcher designed to run non-Steam games on Linux using 
 ## CONTENTS
 
 - [CONTENTS](#contents)
+- [SCREENSHOTS](#screenshots)
 - [FEATURES](#features)
 - [ARCHITECTURE \& EFFICIENCY](#architecture--efficiency)
 - [PREREQUISITES](#prerequisites)
 - [INSTALLATION](#installation)
+     - [Arch Linux](#arch-linux)
+     - [Other Distributions](#other-distributions)
 - [BUILD](#build)
 - [USAGE](#usage)
 - [STONKS!](#stonks)
+
+## SCREENSHOTS
+
+|             HOME             |
+| :--------------------------: |
+|    ![home](docs/home.png)    |
+|          ADD GAMES           |
+| ![home](docs/add_games.png)  |
+|             RUN              |
+|     ![run](docs/run.png)     |
+|            PREFIX            |
+|  ![prefix](docs/prefix.png)  |
+|           VERSION            |
+| ![version](docs/version.png) |
+|            UTILS             |
+|   ![utils](docs/utils.png)   |
 
 ## FEATURES
 
