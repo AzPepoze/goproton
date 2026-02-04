@@ -21,7 +21,7 @@
   </a>
 </p>
 
-GoProton is a dedicated launcher designed to run non-Steam games on Linux using **umu** (Unified Linux Runtime). It provides a seamless way to manage and execute Windows applications through Proton without needing the Steam client to be active for each session.
+GoProton is a games launcher designed to run non-Steam games on Linux using **umu** (Unified Linux Runtime). It provides a seamless way to manage and execute Windows applications through Proton without needing the Steam client to be active for each session.
 
 > [!WARNING]
 >
@@ -39,26 +39,26 @@ GoProton is a dedicated launcher designed to run non-Steam games on Linux using 
 - [ARCHITECTURE \& EFFICIENCY](#architecture--efficiency)
 - [PREREQUISITES](#prerequisites)
 - [INSTALLATION](#installation)
-     - [Arch Linux](#arch-linux)
-     - [Other Distributions](#other-distributions)
+  - [Arch Linux](#arch-linux)
+  - [Other Distributions](#other-distributions)
 - [BUILD](#build)
 - [USAGE](#usage)
 - [STONKS!](#stonks)
 
 ## SCREENSHOTS
 
-|             HOME             |
-| :--------------------------: |
+|            HOME            |
+| :------------------------: |
 |    ![home](docs/home.png)    |
-|          ADD GAMES           |
-| ![home](docs/add_games.png)  |
-|             RUN              |
+|         ADD GAMES         |
+| ![home](docs/add_games.png) |
+|            RUN            |
 |     ![run](docs/run.png)     |
-|            PREFIX            |
+|           PREFIX           |
 |  ![prefix](docs/prefix.png)  |
-|           VERSION            |
+|          VERSION          |
 | ![version](docs/version.png) |
-|            UTILS             |
+|           UTILS           |
 |   ![utils](docs/utils.png)   |
 
 ## FEATURES
