@@ -7,7 +7,7 @@ arch=('x86_64')
 url="https://github.com/AzPepoze/goproton"
 license=('MIT')
 depends=('umu-launcher' 'steam' 'webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator')
-makedepends=('go' 'pnpm' 'git')
+makedepends=('go' 'nodejs' 'git')
 optdepends=('protonplus: recommended for managing Proton versions')
 source=("$pkgname::git+https://github.com/AzPepoze/goproton.git#branch=main")
 sha256sums=('SKIP')
