@@ -6,17 +6,25 @@
 		CleanupProcesses,
 		GetShaderCacheSize,
 		ClearShaderCache,
+		DropCaches,
+		ClearSwap,
 	} from "../../bindings/goproton-wails/backend/app";
 	import * as core from "../../bindings/goproton/pkg/core/models";
 	import trashIcon from "../icons/trash.svg";
 	import rocketIcon from "../icons/rocket.svg";
+	import magicIcon from "../icons/magic.svg";
+	import swapIcon from "../icons/swap.svg";
 	import StatusUtilityButton from "./StatusUtilityButton.svelte";
 
 	let isExpanded = false;
 	let isCleaning = false;
 	let isClearingCache = false;
+	let isDroppingCaches = false;
+	let isClearingSwap = false;
 	let showCleanupSuccess = false;
 	let showCacheSuccess = false;
+	let showDropSuccess = false;
+	let showSwapSuccess = false;
 	let sysInfo: core.SystemInfo = { os: "", kernel: "", cpu: "", gpu: "", ram: "", driver: "" };
 	let sysUsage: core.SystemUsage = { cpu: "0%", ram: "0%", gpu: "0%" };
 	let shaderCacheSize = "...";
@@ -93,6 +101,50 @@
 		} finally {
 			setTimeout(() => {
 				isClearingCache = false;
+			}, 1500);
+		}
+	}
+
+	async function handleDropCaches() {
+		if (isDroppingCaches) return;
+		isDroppingCaches = true;
+		showDropSuccess = false;
+		try {
+			await DropCaches();
+			await fetchData();
+			setTimeout(() => {
+				showDropSuccess = true;
+				setTimeout(() => {
+					showDropSuccess = false;
+				}, 2000);
+			}, 100);
+		} catch (err) {
+			console.error(`Failed to drop caches: ${err}`);
+		} finally {
+			setTimeout(() => {
+				isDroppingCaches = false;
+			}, 1500);
+		}
+	}
+
+	async function handleClearSwap() {
+		if (isClearingSwap) return;
+		isClearingSwap = true;
+		showSwapSuccess = false;
+		try {
+			await ClearSwap();
+			await fetchData();
+			setTimeout(() => {
+				showSwapSuccess = true;
+				setTimeout(() => {
+					showSwapSuccess = false;
+				}, 2000);
+			}, 100);
+		} catch (err) {
+			console.error(`Failed to clear swap: ${err}`);
+		} finally {
+			setTimeout(() => {
+				isClearingSwap = false;
 			}, 1500);
 		}
 	}
@@ -265,6 +317,26 @@
 				btnClass="cache"
 				onclick={handleClearCache}
 			/>
+
+			<StatusUtilityButton
+				icon={magicIcon}
+				title="Drop Caches"
+				subtitle="Free up pagecache & dentries"
+				isPulsing={isDroppingCaches}
+				showSuccess={showDropSuccess}
+				btnClass="drop-caches"
+				onclick={handleDropCaches}
+			/>
+
+			<StatusUtilityButton
+				icon={swapIcon}
+				title="Clear Swap"
+				subtitle="Reset swap usage"
+				isPulsing={isClearingSwap}
+				showSuccess={showSwapSuccess}
+				btnClass="clear-swap"
+				onclick={handleClearSwap}
+			/>
 		</div>
 	</div>
 </div>
@@ -433,8 +505,9 @@
 	}
 
 	.utilities-row {
-		display: flex;
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
 		gap: 16px;
-		align-items: center;
+		align-items: stretch;
 	}
 </style>

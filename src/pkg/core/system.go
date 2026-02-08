@@ -173,3 +173,16 @@ func GetSystemInfo() SystemInfo {
 
 	return info
 }
+
+// DropCaches syncs data and drops caches
+func DropCaches() error {
+	_ = exec.Command("sync").Run()
+	cmd := exec.Command("pkexec", "sysctl", "-w", "vm.drop_caches=3")
+	return cmd.Run()
+}
+
+// ClearSwap toggles swap off and on to clear it
+func ClearSwap() error {
+	cmd := exec.Command("pkexec", "sh", "-c", "swapoff -a && swapon -a")
+	return cmd.Run()
+}

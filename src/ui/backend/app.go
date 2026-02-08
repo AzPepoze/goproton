@@ -130,6 +130,14 @@ func (a *App) ClearShaderCache() error {
 	return core.ClearShaderCache()
 }
 
+func (a *App) DropCaches() error {
+	return core.DropCaches()
+}
+
+func (a *App) ClearSwap() error {
+	return core.ClearSwap()
+}
+
 func (a *App) CleanupProcesses() error {
 	commands := []string{
 		"umu-run",
