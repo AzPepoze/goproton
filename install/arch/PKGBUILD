@@ -1,8 +1,5 @@
 # Maintainer: AzPepoze
-_go_path="${srcdir}/go-path"
-_go_mod_cache="${srcdir}/go-mod-cache"
-_go_build_cache="${srcdir}/go-build-cache"
-_bun_cache="${srcdir}/bun-cache"
+
 
 pkgname=light-launcher
 pkgver=r0.git
@@ -31,9 +28,13 @@ prepare() {
 	cd "$srcdir/$pkgname"
 	
 	# Set up isolated Go environment
-	export GOPATH="$_go_path"
-	export GOMODCACHE="$_go_mod_cache"
-	export GOCACHE="$_go_build_cache"
+	local _golang_workspace_path="${srcdir}/go-path"
+	local _golang_module_cache_path="${srcdir}/go-mod-cache"
+	local _golang_build_cache_path="${srcdir}/go-build-cache"
+	
+	export GOPATH="$_golang_workspace_path"
+	export GOMODCACHE="$_golang_module_cache_path"
+	export GOCACHE="$_golang_build_cache_path"
 	export PATH="${GOPATH}/bin:$PATH"
 	
 	# Install Wails v3 CLI locally for the build process
@@ -44,13 +45,18 @@ build() {
 	cd "$srcdir/$pkgname"
 	
 	# Set up isolated Go environment
-	export GOPATH="$_go_path"
-	export GOMODCACHE="$_go_mod_cache"
-	export GOCACHE="$_go_build_cache"
+	local _golang_workspace_path="${srcdir}/go-path"
+	local _golang_module_cache_path="${srcdir}/go-mod-cache"
+	local _golang_build_cache_path="${srcdir}/go-build-cache"
+	local _bun_install_cache_path="${srcdir}/bun-cache"
+	
+	export GOPATH="$_golang_workspace_path"
+	export GOMODCACHE="$_golang_module_cache_path"
+	export GOCACHE="$_golang_build_cache_path"
 	export PATH="${GOPATH}/bin:$PATH"
 	
 	# Configure Bun Cache within srcdir to avoid Permission issues
-	export BUN_INSTALL_CACHE_DIR="$_bun_cache"
+	export BUN_INSTALL_CACHE_DIR="$_bun_install_cache_path"
 	
 	# Build using Makefile and Wails v3
 	make build
