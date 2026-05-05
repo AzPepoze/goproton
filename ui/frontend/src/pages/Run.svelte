@@ -159,7 +159,7 @@
 		try {
 			const path = await PickFile();
 			if (path) {
-				options = { ...options, RunnerPath: path };
+				options = { ...options, LauncherPath: path };
 				if (!options.Name || options.Name === "Launcher") {
 					options.Name = path.split(/[/\\]/).pop()?.replace(/\.exe$/i, "") || "Launcher";
 				}
@@ -232,7 +232,7 @@
 
 	<!-- Executable Selector Component -->
 	<ExecutableSelector
-		runnerPath={options.RunnerPath}
+		launcherPath={options.LauncherPath}
 		gamePath={options.GamePath}
 		bind:useGamePath
 		bind:launcherIcon

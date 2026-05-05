@@ -2,7 +2,7 @@
 	import { loadExeIcon } from "@lib/iconService";
 	import SlideButton from "@components/shared/SlideButton.svelte";
 
-	export let runnerPath = "";
+	export let launcherPath = "";
 	export let gamePath = "";
 	export let useGamePath = false;
 	export let launcherIcon = "";
@@ -12,20 +12,20 @@
 
 	let launcherIconFailed = false;
 	let gameIconFailed = false;
-	let prevRunnerPath = "";
+	let prevLauncherPath = "";
 	let prevGamePath = "";
 
 	// Internal state for inputs - keep in sync with props
-	let internalRunnerPath = runnerPath;
+	let internalLauncherPath = launcherPath;
 	let internalGamePath = gamePath;
 
 	// When props change, update internal state
-	$: if (runnerPath !== internalRunnerPath) {
+	$: if (launcherPath !== internalLauncherPath) {
 		console.log(
-			"ExecutableSelector: runnerPath prop changed to:",
-			runnerPath,
+			"ExecutableSelector: launcherPath prop changed to:",
+			launcherPath,
 		);
-		internalRunnerPath = runnerPath;
+		internalLauncherPath = launcherPath;
 	}
 
 	$: if (gamePath !== internalGamePath) {
@@ -37,11 +37,11 @@
 	}
 
 	// Load launcher icon when launcher path changes
-	$: if (internalRunnerPath && internalRunnerPath !== prevRunnerPath) {
-		prevRunnerPath = internalRunnerPath;
+	$: if (internalLauncherPath && internalLauncherPath !== prevLauncherPath) {
+		prevLauncherPath = internalLauncherPath;
 		launcherIconFailed = false;
 		(async () => {
-			const icon = await loadExeIcon(internalRunnerPath);
+			const icon = await loadExeIcon(internalLauncherPath);
 			if (icon) {
 				launcherIcon = icon;
 				launcherIconFailed = false;
@@ -116,7 +116,7 @@
 				<input
 					id="launcherExe"
 					type="text"
-					bind:value={internalRunnerPath}
+					bind:value={internalLauncherPath}
 					placeholder="Path to launcher.exe (main executable to run)..."
 					class="input"
 				/>

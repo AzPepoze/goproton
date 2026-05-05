@@ -6,7 +6,7 @@ import "light-launcher/internal/types"
 func buildLaunchOptions() types.LaunchOptions {
 	return types.LaunchOptions{
 		GamePath:      gamePath,
-		RunnerPath:    launcherPath,
+		LauncherPath:  launcherPath,
 		PrefixPath:    prefixPath,
 		ProtonPath:    protonPath,
 		Extras: types.ExtrasConfig{

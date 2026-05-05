@@ -3,7 +3,7 @@ import * as core from "@bindings/light-launcher/internal/types/models";
 export const DEFAULT_LAUNCH_OPTIONS: core.LaunchOptions = {
 	...({
 		Name: "Launcher",
-		RunnerPath: "",
+		LauncherPath: "",
 		GamePath: "",
 		UseGamePath: false,
 		PrefixPath: "",

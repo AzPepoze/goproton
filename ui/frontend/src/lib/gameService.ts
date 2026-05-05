@@ -54,7 +54,7 @@ export async function registerGame(
 
 	const gameConfig = createLaunchOptions();
 	gameConfig.Name = gameName;
-	gameConfig.RunnerPath = executablePath;
+	gameConfig.LauncherPath = executablePath;
 	gameConfig.GamePath = executablePath;
 	gameConfig.PrefixPath = prefixPath;
 	

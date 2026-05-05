@@ -125,12 +125,12 @@ func LoadGameConfig(executablePath string) (*types.LaunchOptions, error) {
 			cfgGamePath = abs
 		}
 
-		cfgRunnerPath := filepath.Clean(cfg.RunnerPath)
-		if abs, err := filepath.Abs(cfgRunnerPath); err == nil {
-			cfgRunnerPath = abs
+		cfgLauncherPath := filepath.Clean(cfg.LauncherPath)
+		if abs, err := filepath.Abs(cfgLauncherPath); err == nil {
+			cfgLauncherPath = abs
 		}
 
-		if cfgGamePath == cleanPath || cfgRunnerPath == cleanPath {
+		if cfgGamePath == cleanPath || cfgLauncherPath == cleanPath {
 			return &cfg, nil
 		}
 	}

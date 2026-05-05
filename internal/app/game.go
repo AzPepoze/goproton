@@ -19,12 +19,12 @@ import (
 func (app *App) RunGame(options types.LaunchOptions, showLogs bool) error {
 	executor.DebugLog("RunGame called with options for: " + options.GamePath)
 
-	if _, err := os.Stat(options.GamePath); os.IsNotExist(err) {
-		return fmt.Errorf("game executable not found at: %s", options.GamePath)
+	if !options.UseGamePath && options.LauncherPath != "" {
+		options.GamePath = options.LauncherPath
 	}
 
-	if !options.UseGamePath && options.RunnerPath != "" {
-		options.GamePath = options.RunnerPath
+	if _, err := os.Stat(options.GamePath); os.IsNotExist(err) {
+		return fmt.Errorf("game executable not found at: %s", options.GamePath)
 	}
 
 	_ = config.SaveGameConfig(options)
@@ -100,7 +100,7 @@ func findInstanceManager() string {
 func buildInstanceManagerArgs(options types.LaunchOptions, showLogs bool) []string {
 	arguments := []string{
 		"--game", options.GamePath,
-		"--launcher", options.RunnerPath,
+		"--launcher", options.LauncherPath,
 		"--prefix", options.PrefixPath,
 		"--proton-pattern", filepath.Base(options.ProtonPath),
 		"--proton-path", options.ProtonPath,
@@ -152,7 +152,7 @@ func (app *App) GetAllGames() ([]types.GameInfo, error) {
 			name = strings.TrimSuffix(name, filepath.Ext(name))
 		}
 
-		cleanedPath := filepath.Clean(gameConfig.RunnerPath)
+		cleanedPath := filepath.Clean(gameConfig.LauncherPath)
 		if cleanedPath == "" {
 			cleanedPath = filepath.Clean(gameConfig.GamePath)
 		}

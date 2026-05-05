@@ -63,7 +63,7 @@ func (builder *CommandBuilder) buildBaseEnvironment() {
 func (builder *CommandBuilder) addUmuRun() {
 	builder.Arguments = append(builder.Arguments, "umu-run")
 
-	executablePath := builder.Options.RunnerPath
+	executablePath := builder.Options.LauncherPath
 	if executablePath == "" {
 		executablePath = builder.Options.GamePath
 	}

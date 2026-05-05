@@ -10,9 +10,10 @@ const { subscribe, update } = writable<Notification[]>([]);
 
 const notificationStore = {
 	subscribe,
-	add: (message: string, type: "info" | "error" | "success" = "info") => {
+	add: (message: any, type: "info" | "error" | "success" = "info") => {
+		const msg = typeof message === "string" ? message : (message?.message || String(message));
 		const id = Date.now();
-		update((n) => [...n, { id, message, type }]);
+		update((n) => [...n, { id, message: msg, type }]);
 		setTimeout(() => {
 			update((n) => n.filter((i) => i.id !== id));
 		}, 5000);
@@ -20,27 +21,9 @@ const notificationStore = {
 	remove: (id: number) => {
 		update((n) => n.filter((i) => i.id !== id));
 	},
-	error: (message: string) => {
-		const id = Date.now();
-		update((n) => [...n, { id, message, type: "error" }]);
-		setTimeout(() => {
-			update((n) => n.filter((i) => i.id !== id));
-		}, 5000);
-	},
-	success: (message: string) => {
-		const id = Date.now();
-		update((n) => [...n, { id, message, type: "success" }]);
-		setTimeout(() => {
-			update((n) => n.filter((i) => i.id !== id));
-		}, 5000);
-	},
-	info: (message: string) => {
-		const id = Date.now();
-		update((n) => [...n, { id, message, type: "info" }]);
-		setTimeout(() => {
-			update((n) => n.filter((i) => i.id !== id));
-		}, 5000);
-	},
+	error: (message: any) => notificationStore.add(message, "error"),
+	success: (message: any) => notificationStore.add(message, "success"),
+	info: (message: any) => notificationStore.add(message, "info"),
 	warning: (message: string) => {
 		notificationStore.error(message);
 	},
@@ -62,7 +45,8 @@ const notificationStore = {
 			if (options.success) notificationStore.success(options.success);
 			return result;
 		} catch (err) {
-			const errorMsg = options.error || String(err);
+			const message = (err as any)?.message || String(err);
+			const errorMsg = options.error || message;
 			notificationStore.error(errorMsg);
 			throw err;
 		}

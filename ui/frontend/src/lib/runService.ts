@@ -75,9 +75,9 @@ export async function initializeRunPage(
 	}
 
 	// Auto-load config if a runner is already set
-	if (currentOptions.RunnerPath) {
+	if (currentOptions.LauncherPath) {
 		await loadConfigForGame(
-			currentOptions.RunnerPath, 
+			currentOptions.LauncherPath, 
 			currentOptions, 
 			prefixPath, 
 			baseDirectory, 
@@ -86,20 +86,21 @@ export async function initializeRunPage(
 			onConfigUpdate
 		);
 		if (!launcherIcon) {
-			launcherIcon = (await GetExeIcon(currentOptions.RunnerPath)) || "";
+			launcherIcon = (await GetExeIcon(currentOptions.LauncherPath)) || "";
 		}
 	}
 
 	// Handle initial path passed from OS (e.g., tray or file open)
 	const initialOsPath = await GetInitialLauncherPath();
 	if (initialOsPath) {
-		if (!currentOptions.RunnerPath && !currentOptions.GamePath) {
-			currentOptions.RunnerPath = initialOsPath;
+		if (!currentOptions.LauncherPath && !currentOptions.GamePath) {
+			currentOptions.LauncherPath = initialOsPath;
+			currentOptions.GamePath = initialOsPath; // Sync GamePath
 			launcherIcon = (await GetExeIcon(initialOsPath)) || "";
 			if (!currentOptions.Name || currentOptions.Name === "Launcher") {
 				currentOptions.Name = initialOsPath.split(/[/\\]/).pop()?.replace(/\.exe$/i, "") || "Launcher";
 			}
-		} else if (!currentOptions.GamePath || currentOptions.GamePath === currentOptions.RunnerPath) {
+		} else if (!currentOptions.GamePath || currentOptions.GamePath === currentOptions.LauncherPath) {
 			mainExecutablePath = initialOsPath;
 			currentOptions.GamePath = initialOsPath;
 			gameIcon = (await GetExeIcon(initialOsPath)) || "";
@@ -116,8 +117,8 @@ export async function initializeRunPage(
 	}
 
 	// Ensure icons are loaded for existing paths
-	if (currentOptions.RunnerPath && !launcherIcon) {
-		launcherIcon = (await GetExeIcon(currentOptions.RunnerPath)) || "";
+	if (currentOptions.LauncherPath && !launcherIcon) {
+		launcherIcon = (await GetExeIcon(currentOptions.LauncherPath)) || "";
 	}
 	if (currentOptions.GamePath && !gameIcon) {
 		gameIcon = (await GetExeIcon(currentOptions.GamePath)) || "";
@@ -153,7 +154,7 @@ export async function validateAndLaunch(
 	protonVersions: core.ProtonTool[],
 	showLogsWindow: boolean
 ): Promise<boolean> {
-	if (!launchOptions.RunnerPath) {
+	if (!launchOptions.LauncherPath) {
 		notifications.add("Please select a launcher executable.", "error");
 		return false;
 	}
@@ -195,6 +196,7 @@ export async function executeLaunch(
 		Window.Close();
 	} catch (error) {
 		console.error("[EXECUTE] Launch failed:", error);
-		notifications.add(`Launch failed: ${error}`, "error");
+		const message = (error as any)?.message || String(error);
+		notifications.add(`Launch failed: ${message}`, "error");
 	}
 }

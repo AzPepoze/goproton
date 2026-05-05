@@ -55,7 +55,7 @@
 
 		// Fetch icons for games
 		for (const game of games) {
-			const path = game.path || game.config.RunnerPath;
+			const path = game.path || game.config.LauncherPath;
 			if (path && !gameIcons[path]) {
 				loadExeIcon(path).then((icon) => {
 					if (icon) {

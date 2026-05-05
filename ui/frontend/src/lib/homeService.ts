@@ -97,7 +97,7 @@ export async function processDroppedFiles(filePaths: string[]): Promise<number> 
 				
 				const gameConfig = createLaunchOptions();
 				gameConfig.Name = gameName;
-				gameConfig.RunnerPath = filePath;
+				gameConfig.LauncherPath = filePath;
 				gameConfig.GamePath = filePath;
 				gameConfig.PrefixPath = defaultPrefixPath;
 

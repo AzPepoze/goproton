@@ -54,15 +54,14 @@ export async function loadConfigForPrefix(
 		const config = await LoadPrefixConfig(name);
 		if (config) {
 			const savedGamePath = options.GamePath;
-			const savedRunnerPath = options.RunnerPath;
+			const savedLauncherPath = options.LauncherPath;
 			const savedUseGamePath = options.UseGamePath;
 			const savedPrefixPath = options.PrefixPath;
 
 			const updatedProton = applyConfigToOptions(config, options, protonVersions);
 
-			// Restore Target
-			options.GamePath = savedGamePath;
-			options.RunnerPath = savedRunnerPath;
+			if (savedGamePath) options.GamePath = savedGamePath;
+			if (savedLauncherPath) options.LauncherPath = savedLauncherPath;
 			options.UseGamePath = savedUseGamePath;
 
 			let newPrefixPath = prefixPath;
@@ -109,13 +108,13 @@ export function applyConfigToOptions(
 		options.Extras = newExtras;
 	}
 	
-	if (!options.RunnerPath && config.RunnerPath) {
-		options.RunnerPath = config.RunnerPath;
+	if (!options.LauncherPath && config.LauncherPath) {
+		options.LauncherPath = config.LauncherPath;
 	}
 	options.UseGamePath = config.UseGamePath === true; 
 
-	if (!options.UseGamePath && options.RunnerPath) {
-		options.GamePath = options.RunnerPath;
+	if (!options.UseGamePath && options.LauncherPath) {
+		options.GamePath = options.LauncherPath;
 	} else if (options.UseGamePath && config.GamePath) {
 		options.GamePath = config.GamePath;
 	}

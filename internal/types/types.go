@@ -34,7 +34,7 @@ type ExtrasConfig struct {
 type LaunchOptions struct {
 	ID            string       `json:"ID"`
 	Name          string       `json:"Name"`
-	RunnerPath    string       `json:"RunnerPath"`
+	LauncherPath  string       `json:"LauncherPath"`
 	GamePath      string       `json:"GamePath"`
 	UseGamePath   bool         `json:"UseGamePath"`
 	PrefixPath    string       `json:"PrefixPath"`
